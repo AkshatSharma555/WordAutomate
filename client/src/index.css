@@ -1,0 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global Styles */
+body {
+    background-color: #020617; /* Dark Base */
+    color: #F3F2ED; /* SIES Cream Text (White ki jagah) */
+    font-family: 'Poppins', sans-serif;
+}
+
+/* Custom Selection Color */
+::selection {
+    background-color: #1AA3A3; /* SIES Teal */
+    color: white;
+}
