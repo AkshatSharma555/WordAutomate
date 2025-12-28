@@ -1,11 +1,14 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App.jsx'
-import './index.css'
-import { BrowserRouter } from 'react-router-dom' // Import Router
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App.jsx';
+import './index.css';
+import { MsalProvider } from "@azure/msal-react";
+import { msalInstance } from "./config/authConfig";
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <BrowserRouter> {/* App ko wrap karo */}
-    <App />
-  </BrowserRouter>,
-)
+  <React.StrictMode>
+    <MsalProvider instance={msalInstance}>
+      <App />
+    </MsalProvider>
+  </React.StrictMode>,
+);
