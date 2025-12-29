@@ -6,11 +6,11 @@ import { navLinks } from '../../config/navigation';
 import Logo from '../common/Logo';
 import Button from '../common/Button';
 import { cn } from '../../utils/cn';
-import { useAuth } from '../../context/AuthContext'; // Auth state check karne ke liye
+import { useAuth } from '../../context/AuthContext';
 
 const Navbar = ({ className, isDark }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const { currentUser } = useAuth(); // Check user login status
+  const { currentUser } = useAuth(); 
 
   return (
     <>
@@ -20,16 +20,18 @@ const Navbar = ({ className, isDark }) => {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
         className={cn(
-            "fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 md:px-12 lg:px-20 border-b backdrop-blur-md transition-all duration-300",
-            // Theme Logic: Light mode mein tumhara Warm Off-White use kiya hai
+            "fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 md:px-12 lg:px-20 border-b backdrop-blur-md transition-all duration-500",
+            // 🌟 Theme Logic:
+            // Dark Mode: Fully Transparent + Thin White Border (Taaki lines dikhein)
+            // Light Mode: Cream Translucent + Slate Border
             isDark 
-                ? "bg-transparent border-white/5" 
-                : "bg-[#F3F2ED]/90 border-slate-200", 
+                ? "bg-transparent border-white/10" 
+                : "bg-[#F3F2ED]/80 border-slate-200", 
             className
         )}
       >
-        {/* 1. Logo */}
-        <Logo isDark={isDark} />
+        {/* 1. Logo (Pass isDark prop to switch color) */}
+        <Logo className={isDark ? "text-white" : "text-slate-900"} />
 
         {/* 2. Desktop Links */}
         <div className="hidden md:flex items-center gap-8">
@@ -39,10 +41,10 @@ const Navbar = ({ className, isDark }) => {
               href={link.href} 
               className={cn(
                   "text-sm font-medium transition-colors duration-200",
-                  // Text Colors: Default Slate, Hover pe TEAL (#1AA3A3)
+                  // Text Colors
                   isDark 
                     ? "text-slate-300 hover:text-white" 
-                    : "text-slate-600 hover:text-[#1AA3A3]"
+                    : "text-slate-600 hover:text-[#F54A00]" // Hover Orange in Light Mode
               )}
             >
               {link.name}
@@ -50,7 +52,7 @@ const Navbar = ({ className, isDark }) => {
           ))}
         </div>
 
-        {/* 3. Action Button (Single Login/Dashboard Button) */}
+        {/* 3. Action Button */}
         <div className="hidden md:flex items-center gap-4">
             {currentUser ? (
                 <Link to="/dashboard">
@@ -60,8 +62,13 @@ const Navbar = ({ className, isDark }) => {
                 </Link>
             ) : (
                 <Link to="/login">
-                    {/* Orange Button for High Visibility */}
-                    <Button className="bg-[#F54A00] hover:bg-[#D94100] text-white shadow-lg shadow-[#F54A00]/20 border-none">
+                    {/* Button adjusts based on theme for better visibility */}
+                    <Button className={cn(
+                        "text-white shadow-lg border-none transition-all hover:scale-105",
+                        isDark 
+                            ? "bg-white text-black hover:bg-slate-200 shadow-white/10" 
+                            : "bg-[#F54A00] hover:bg-[#D94100] shadow-[#F54A00]/20"
+                    )}>
                         Login
                     </Button>
                 </Link>
@@ -72,8 +79,8 @@ const Navbar = ({ className, isDark }) => {
         <button 
           onClick={() => setIsOpen(!isOpen)} 
           className={cn(
-              "md:hidden p-2 transition-colors",
-              isDark ? "text-slate-300 hover:text-white" : "text-slate-900 hover:text-[#1AA3A3]"
+              "md:hidden p-2 transition-colors rounded-lg",
+              isDark ? "text-white hover:bg-white/10" : "text-slate-900 hover:bg-slate-200"
           )}
         >
           {isOpen ? <X size={24} /> : <Menu size={24} />}
@@ -89,8 +96,7 @@ const Navbar = ({ className, isDark }) => {
             exit={{ opacity: 0, y: -20 }}
             className={cn(
                 "fixed inset-0 z-40 pt-24 px-6 md:hidden backdrop-blur-xl transition-colors duration-300",
-                // Mobile Background matches Theme
-                isDark ? "bg-slate-950/95" : "bg-[#F3F2ED]/95"
+                isDark ? "bg-black/90" : "bg-[#F3F2ED]/95"
             )}
           >
             <div className="flex flex-col gap-6">
@@ -100,8 +106,8 @@ const Navbar = ({ className, isDark }) => {
                   href={link.href}
                   onClick={() => setIsOpen(false)}
                   className={cn(
-                      "text-xl font-medium transition-colors hover:text-[#1AA3A3]",
-                      isDark ? "text-slate-300" : "text-slate-900"
+                      "text-xl font-medium transition-colors",
+                      isDark ? "text-slate-300 hover:text-white" : "text-slate-900 hover:text-[#F54A00]"
                   )}
                 >
                   {link.name}
@@ -119,7 +125,10 @@ const Navbar = ({ className, isDark }) => {
                   </Link>
               ) : (
                   <Link to="/login" onClick={() => setIsOpen(false)}>
-                    <Button className="w-full justify-center bg-[#F54A00] hover:bg-[#D94100] text-white border-none">
+                    <Button className={cn(
+                        "w-full justify-center border-none",
+                        isDark ? "bg-white text-black" : "bg-[#F54A00] text-white"
+                    )}>
                         Login
                     </Button>
                   </Link>

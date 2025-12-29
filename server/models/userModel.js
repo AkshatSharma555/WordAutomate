@@ -10,30 +10,22 @@ const userSchema = new mongoose.Schema({
         required: true, 
         unique: true 
     },
-    password: { 
-        type: String, 
-        // required: true  <-- HATAYA: Kyunki Microsoft users ka password nahi hoga
-    },
     microsoftId: {
         type: String,
-        unique: true,
-        sparse: true // Allows multiple null values (agar normal user hai toh ye null hoga)
+        required: true,
+        unique: true
     },
-    authProvider: {
-        type: String,
-        enum: ['email', 'microsoft'], // Sirf ye do values allow hongi
-        default: 'email'
+    profilePicture: { 
+        type: String, 
+        default: "" 
     },
-    isAccountVerified: { 
-        type: Boolean, 
-        default: false 
-    },
-    // --- Legacy Fields (OTP wagera abhi rakhte hain safe side ke liye) ---
-    verifyOtp: { type: String, default: '' },
-    verifyOtpExpireAt: { type: Number, default: 0 },
-    resetOtp: { type: String, default: '' },
-    resetOtpExpireAt: { type: Number, default: 0 },
-}, { timestamps: true }); // Automatic createdAt aur updatedAt banayega
+    microsoftOriginalUrl: { 
+        type: String, 
+        default: "" },
+    
+    theme: { type: String, default: 'light', enum: ['light', 'dark'] }
+}, { timestamps: true }); 
+
 
 const userModel = mongoose.models.user || mongoose.model('user', userSchema);
 

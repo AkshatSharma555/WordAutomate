@@ -1,109 +1,153 @@
 import jwt from "jsonwebtoken";
 import axios from "axios";
 import userModel from "../models/userModel.js";
+import cloudinary from "../config/cloudinary.js";
+import streamifier from "streamifier";
 
-// --- MICROSOFT SSO LOGIN (The Main Function) ---
+const uploadFromBuffer = (buffer) => {
+  return new Promise((resolve, reject) => {
+    const cld_upload_stream = cloudinary.uploader.upload_stream(
+      {
+        folder: "wordautomate_users"
+      },
+      (error, result) => {
+        if (result) resolve(result);
+        else reject(error);
+      }
+    );
+    streamifier.createReadStream(buffer).pipe(cld_upload_stream);
+  });
+};
+
 export const microsoftLogin = async (req, res) => {
   try {
-    const { accessToken } = req.body; // Frontend se token aayega
+    const { accessToken } = req.body;
 
     if (!accessToken) {
       return res.status(400).json({ success: false, message: "No access token provided" });
     }
 
-    // 1. Verify Token with Microsoft Graph API
-    // Hum Microsoft se puchenge: "Ye token kiska hai?"
-    const msResponse = await axios.get('https://graph.microsoft.com/v1.0/me', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`
-      }
+    const msResponse = await axios.get("https://graph.microsoft.com/v1.0/me", {
+      headers: { Authorization: `Bearer ${accessToken}` }
     });
 
     const { displayName, mail, userPrincipalName, id } = msResponse.data;
-    
-    // Kabhi kabhi 'mail' null hota hai, toh 'userPrincipalName' use karo
-    const userEmail = mail || userPrincipalName; 
+    const userEmail = mail || userPrincipalName;
 
-    // 2. Domain Security Check (Only College Emails)
-    if (!userEmail || !userEmail.toLowerCase().endsWith('@gst.sies.edu.in')) {
-      return res.status(403).json({ 
-        success: false, 
-        message: "Access Denied. Only @gst.sies.edu.in emails are allowed." 
-      });
+    if (!userEmail || !userEmail.toLowerCase().endsWith("@gst.sies.edu.in")) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Access Denied. Only @gst.sies.edu.in emails allowed." });
     }
 
-    // 3. Check if User Exists in DB
+    let profilePicUrl = "";
+
+    try {
+      const photoResponse = await axios.get("https://graph.microsoft.com/v1.0/me/photo/$value", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        responseType: "arraybuffer"
+      });
+
+      if (photoResponse.data) {
+        const cloudRes = await uploadFromBuffer(photoResponse.data);
+        profilePicUrl = cloudRes.secure_url;
+      }
+    } catch (err) {
+      console.log("Microsoft photo fetch failed (User might not have one).");
+    }
+
     let user = await userModel.findOne({ email: userEmail });
 
     if (!user) {
-      // CASE A: New User -> Auto Register
       user = new userModel({
         name: displayName,
         email: userEmail,
         microsoftId: id,
-        authProvider: 'microsoft',
-        isAccountVerified: true // College email hai toh verified hai
+        authProvider: "microsoft",
+        isAccountVerified: true,
+        profilePicture: profilePicUrl,
+        microsoftOriginalUrl: profilePicUrl
       });
       await user.save();
     } else {
-      // CASE B: Existing User -> Update Info if needed
+      let isUpdated = false;
+
+      if (profilePicUrl) {
+        if (user.microsoftOriginalUrl !== profilePicUrl) {
+          user.microsoftOriginalUrl = profilePicUrl;
+          isUpdated = true;
+        }
+
+        if (!user.profilePicture) {
+          user.profilePicture = profilePicUrl;
+          isUpdated = true;
+        }
+      }
+
       if (!user.microsoftId) {
         user.microsoftId = id;
-        user.authProvider = 'microsoft';
-        user.isAccountVerified = true; // Ensure verified
-        await user.save();
+        user.authProvider = "microsoft";
+        user.isAccountVerified = true;
+        isUpdated = true;
       }
+
+      if (isUpdated) await user.save();
     }
 
-    // 4. Generate Session Token (JWT)
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "3h" });
 
-    // 5. Set Cookie
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: 3 * 60 * 60 * 1000
     });
 
-    return res.json({ 
-      success: true, 
+    return res.json({
+      success: true,
       message: "Logged in successfully",
       userData: {
         name: user.name,
         email: user.email,
-        isVerified: user.isAccountVerified
+        isVerified: user.isAccountVerified,
+        profilePicture: user.profilePicture,
+        microsoftOriginalUrl: user.microsoftOriginalUrl
       }
     });
-
   } catch (error) {
-    console.error("Microsoft Login Error:", error.message);
-    return res.status(500).json({ success: false, message: "Authentication failed with Microsoft" });
+    console.error("Login Error:", error);
+    return res.status(500).json({ success: false, message: "Authentication failed" });
   }
 };
 
-// --- LOGOUT ---
 export const logout = async (req, res) => {
   try {
     res.clearCookie("token", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict"
     });
-
-    return res.json({ success: true, message: "Logged out successfully" });
+    return res.json({ success: true, message: "Logged out" });
   } catch (error) {
     return res.json({ success: false, message: error.message });
   }
 };
 
-// --- CHECK AUTH STATUS (For Frontend Protection) ---
 export const isAuthenticated = async (req, res) => {
   try {
-    // Agar request yahan tak aayi hai matlab middleware pass ho gaya
-    return res.json({ success: true });
+    const user = await userModel.findById(req.body.userId);
+    if (!user) return res.json({ success: false });
+
+    return res.json({
+      success: true,
+      userData: {
+        name: user.name,
+        email: user.email,
+        isVerified: user.isAccountVerified,
+        profilePicture: user.profilePicture,
+        microsoftOriginalUrl: user.microsoftOriginalUrl
+      }
+    });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }

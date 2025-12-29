@@ -16,3 +16,23 @@ body {
     background-color: #1AA3A3; /* SIES Teal */
     color: white;
 }
+
+/* Smooth Transition for Dark Mode */
+html, body {
+  @apply transition-colors duration-300 ease-in-out;
+}
+
+/* Optional: Dark Scrollbar */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: #111;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
