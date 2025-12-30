@@ -17,7 +17,11 @@ export const getUserData = async (req, res) => {
         email: user.email,
         isAccountVerified: user.isAccountVerified,
         profilePicture: user.profilePicture,
-        microsoftOriginalUrl: user.microsoftOriginalUrl
+        microsoftOriginalUrl: user.microsoftOriginalUrl,
+        theme: user.theme,
+        prn: user.prn || "" ,
+        branch: user.branch || "", 
+        year: user.year || ""
       }
     });
   } catch (error) {
@@ -103,4 +107,48 @@ export const updateUserTheme = async (req, res) => {
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
+};
+
+export const updatePersonalInfo = async (req, res) => {
+    try {
+        const userId = req.userId;
+        
+        // 👇 Request body se branch aur year bhi nikalo
+        const { name, prn, branch, year } = req.body; 
+
+        const updateData = {};
+
+        // Name Validation
+        if (name && name.trim().length >= 3) {
+            updateData.name = name.trim();
+        }
+
+        // PRN Validation
+        if (prn) {
+            updateData.prn = prn.toUpperCase().trim();
+        }
+        
+        // 👇 BRANCH & YEAR UPDATE LOGIC
+        if (branch) updateData.branch = branch;
+        if (year) updateData.year = year;
+
+        const user = await userModel.findByIdAndUpdate(
+            userId, 
+            updateData, 
+            { new: true }
+        );
+
+        return res.json({ 
+            success: true, 
+            message: "Personal details updated", 
+            name: user.name,
+            prn: user.prn,
+            // 👇 Response mein wapas bhejo
+            branch: user.branch,
+            year: user.year
+        });
+
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
 };

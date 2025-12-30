@@ -1,15 +1,19 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '../../utils/cn';
-import ScrollFloat from '../ui/ScrollFloat'; // Import kiya
+import ScrollFloat from '../ui/ScrollFloat';
 
 const SectionTitle = ({ title, subtitle, description, className, align = 'center', isDark }) => {
   return (
-    <div className={cn("flex flex-col gap-4 mb-16", align === 'center' ? "items-center text-center" : "items-start text-left", className)}>
-      
-      {/* Subtitle: Simple Fade In */}
+    <div
+      className={cn(
+        "flex flex-col gap-4 mb-16",
+        align === 'center' ? "items-center text-center" : "items-start text-left",
+        className
+      )}
+    >
       {subtitle && (
-        <motion.span 
+        <motion.span
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -19,32 +23,32 @@ const SectionTitle = ({ title, subtitle, description, className, align = 'center
         </motion.span>
       )}
 
-      {/* Main Heading: ✨ SCROLL FLOAT EFFECT ADDED ✨ */}
-      <div className={cn(
-            "text-3xl md:text-5xl font-bold",
-            isDark ? "text-white" : "text-slate-900"
-      )}>
-        <ScrollFloat 
-            animationDuration={1} 
-            ease='back.inOut(2)' 
-            scrollStart='top bottom-=10%' 
-            scrollEnd='bottom center' 
-            stagger={0.05}
+      <div
+        className={cn(
+          "text-3xl md:text-5xl font-bold",
+          isDark ? "text-white" : "text-slate-900"
+        )}
+      >
+        <ScrollFloat
+          animationDuration={1}
+          ease="back.inOut(2)"
+          scrollStart="top bottom-=10%"
+          scrollEnd="bottom center"
+          stagger={0.05}
         >
-            {title}
+          {title}
         </ScrollFloat>
       </div>
 
-      {/* Description: Standard Motion */}
       {description && (
-        <motion.p 
+        <motion.p
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.2 }}
           className={cn(
-              "max-w-2xl text-lg leading-relaxed",
-              isDark ? "text-slate-400" : "text-slate-600"
+            "max-w-2xl text-lg leading-relaxed",
+            isDark ? "text-slate-400" : "text-slate-600"
           )}
         >
           {description}

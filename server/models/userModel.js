@@ -10,6 +10,9 @@ const userSchema = new mongoose.Schema({
         required: true, 
         unique: true 
     },
+    prn: { type: String, default: "" },
+    branch: { type: String, default: "" }, 
+    year: { type: String, default: "" },
     microsoftId: {
         type: String,
         required: true,

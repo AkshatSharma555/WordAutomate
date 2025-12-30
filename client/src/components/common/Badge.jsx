@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '../../utils/cn'; // Humara helper function
+import { cn } from '../../utils/cn';
 
 const Badge = ({ children, className }) => {
   return (
