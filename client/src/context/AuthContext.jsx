@@ -5,18 +5,17 @@ import axios from 'axios';
 
 const AuthContext = createContext();
 
-// Custom Hook to use Auth Context
 export const useAuth = () => useContext(AuthContext);
 
-// Backend Base URL
-const BACKEND_URL = 'http://localhost:5000/api/auth';
+// 👇 UPDATED: Dynamic URL logic (Local + Production friendly)
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const BACKEND_URL = `${API_BASE_URL}/auth`;
 
 export const AuthProvider = ({ children }) => {
     const { instance } = useMsal();
     const [currentUser, setCurrentUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // 🌟 1. Check Auth Status (On Page Load/Refresh)
     const checkAuthStatus = async () => {
         try {
             const { data } = await axios.get(`${BACKEND_URL}/is-auth`, { withCredentials: true });
@@ -26,7 +25,7 @@ export const AuthProvider = ({ children }) => {
                 setCurrentUser(null);
             }
         } catch (error) {
-            console.error("Auth Check Error:", error.message);
+            // Error handling remains silent in production logs for better UX
             setCurrentUser(null);
         } finally {
             setLoading(false);
@@ -37,7 +36,6 @@ export const AuthProvider = ({ children }) => {
         checkAuthStatus();
     }, []);
 
-    // 🌟 2. Login Function
     const login = async () => {
         try {
             const loginResponse = await instance.loginPopup(loginRequest);
@@ -56,12 +54,10 @@ export const AuthProvider = ({ children }) => {
                 throw new Error(data.message);
             }
         } catch (error) {
-            console.error("Login Failed:", error);
             throw error;
         }
     };
 
-    // 🌟 3. Logout Function
     const logout = async () => {
         try {
             await axios.post(`${BACKEND_URL}/logout`, {}, { withCredentials: true });
@@ -75,7 +71,7 @@ export const AuthProvider = ({ children }) => {
     return (
         <AuthContext.Provider value={{ 
             currentUser, 
-            setCurrentUser, // 👈 YEH ADD KIYA HAI (CRITICAL FIX)
+            setCurrentUser,
             login, 
             logout, 
             loading 
