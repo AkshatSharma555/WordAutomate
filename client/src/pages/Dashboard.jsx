@@ -1,14 +1,15 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import Breadcrumb from '../components/common/Breadcrumb';
 import DashboardNavbar from '../components/layout/DashboardNavbar';
-import { ShieldCheck, Loader2 } from 'lucide-react';
+import GeneratorEngine from '../components/generator/GeneratorEngine';
+import { ShieldCheck, Loader2, Plus, History, LayoutDashboard } from 'lucide-react';
 
 const Dashboard = () => {
   const { currentUser, logout, loading } = useAuth();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('generate'); // 'generate' | 'history'
 
   useEffect(() => {
     if (!loading && !currentUser) navigate('/login');
@@ -16,11 +17,16 @@ const Dashboard = () => {
 
   const handleLogout = async () => { await logout(); navigate('/'); };
 
+  // Helper to format name nicely (e.g., "SHARMA AKSHAT" -> "Sharma Akshat")
+  const formatName = (name) => {
+    return name ? name.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : 'Student';
+  };
+
   if (loading || !currentUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F3F2ED] dark:bg-[#050505]">
         <div className="flex flex-col items-center gap-3">
-            <Loader2 className="size-8 animate-spin text-[#1AA3A3]" />
+            <Loader2 className="size-8 animate-spin text-primary" />
             <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">Verifying Session...</p>
         </div>
       </div>
@@ -28,64 +34,90 @@ const Dashboard = () => {
   }
 
   return (
-    // 🌟 Dark Mode: #050505 Background
-    <div className="min-h-screen w-full bg-[#F3F2ED] dark:bg-[#050505] relative overflow-hidden transition-colors duration-300">
+    <div className="min-h-screen w-full bg-[#F3F2ED] dark:bg-[#050505] relative transition-colors duration-300">
       
       <DashboardNavbar user={currentUser} onLogout={handleLogout} />
 
-      <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
-          <div className="absolute top-[-10%] left-[-10%] size-[500px] rounded-full blur-[120px] opacity-10 dark:opacity-5 bg-[#F54A00]" />
-          <div className="absolute bottom-[-10%] right-[-10%] size-[500px] rounded-full blur-[120px] opacity-10 dark:opacity-5 bg-[#1AA3A3]" />
+      {/* Ambient Background Glow */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] size-[500px] rounded-full blur-[120px] opacity-10 dark:opacity-5 bg-secondary" />
+          <div className="absolute bottom-[-10%] right-[-10%] size-[500px] rounded-full blur-[120px] opacity-10 dark:opacity-5 bg-primary" />
       </div>
 
-      <div className="relative z-10 pt-24 px-6 md:px-10 max-w-7xl mx-auto">
-        <div className="mb-6"><Breadcrumb items={[{ label: 'Dashboard', path: '/dashboard' }]} /></div>
-
+      <div className="relative z-10 pt-24 px-4 md:px-8 max-w-5xl mx-auto pb-20">
+        
+        {/* Header Section - Compact & Professional */}
         <motion.div 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white dark:bg-[#111111] rounded-3xl p-8 shadow-xl shadow-slate-200/50 dark:shadow-none border border-white/60 dark:border-slate-800 mb-8 transition-colors"
+            className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8"
         >
-            <div className="flex flex-col md:flex-row md:items-center gap-6">
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        Hello, {currentUser.name}! <span className="text-2xl">👋</span>
-                    </h1>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">{currentUser.email}</p>
-                    <div className="inline-flex items-center gap-1.5 mt-3 text-xs font-semibold text-[#1AA3A3] bg-[#1AA3A3]/10 px-3 py-1.5 rounded-full">
-                        <ShieldCheck size={14} /> Verified SIES Account
-                    </div>
+            <div>
+                <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-bold tracking-wider text-secondary uppercase bg-secondary/10 px-2 py-0.5 rounded">
+                        Student Dashboard
+                    </span>
+                    {currentUser.isVerified && (
+                         <span className="flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">
+                            <ShieldCheck size={12} /> Verified
+                        </span>
+                    )}
                 </div>
+                <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
+                    Welcome, {formatName(currentUser.name)}
+                </h1>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+                    Create lab reports instantly using Microsoft Graph technology.
+                </p>
+            </div>
+
+            {/* Tab Switcher - Clean Pills */}
+            <div className="flex bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <button
+                    onClick={() => setActiveTab('generate')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        activeTab === 'generate' 
+                        ? 'bg-primary text-white shadow-md' 
+                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                    }`}
+                >
+                    <Plus size={16} /> New Report
+                </button>
+                <button
+                    onClick={() => setActiveTab('history')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        activeTab === 'history' 
+                        ? 'bg-primary text-white shadow-md' 
+                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                    }`}
+                >
+                    <History size={16} /> History
+                </button>
             </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-            {/* Card 1 */}
-            <motion.div whileHover={{ y: -5 }} className="bg-white dark:bg-[#111111] p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-lg transition-all cursor-pointer group">
-                <div className="size-14 bg-orange-50 dark:bg-orange-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-[#F54A00] transition-colors">
-                    <span className="text-2xl group-hover:grayscale brightness-0 invert dark:invert-0 dark:group-hover:invert text-[#F54A00]">📄</span>
+        {/* Main Content Area */}
+        <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+        >
+            {activeTab === 'generate' ? (
+                // 🚀 The Generator Engine (Directly Visible)
+                <GeneratorEngine />
+            ) : (
+                // 🕒 History Placeholder (Future Implementation)
+                <div className="bg-white dark:bg-[#111111] rounded-3xl p-12 text-center border border-dashed border-slate-300 dark:border-slate-800">
+                    <div className="size-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
+                        <LayoutDashboard size={32} />
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-800 dark:text-white">No history found</h3>
+                    <p className="text-slate-500 text-sm mt-1">Your generated documents will appear here soon.</p>
                 </div>
-                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Your Documents</h3>
-                <p className="text-slate-500 dark:text-slate-400 text-sm">Access and manage all your generated lab reports.</p>
-            </motion.div>
-            
-            {/* Card 2 */}
-            <motion.div whileHover={{ y: -5 }} className="bg-white dark:bg-[#111111] p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-lg transition-all cursor-pointer group">
-                <div className="size-14 bg-teal-50 dark:bg-teal-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-[#1AA3A3] transition-colors">
-                      <span className="text-2xl group-hover:grayscale brightness-0 invert dark:invert-0 dark:group-hover:invert text-[#1AA3A3]">📊</span>
-                </div>
-                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Activity Stats</h3>
-                <p className="text-slate-500 dark:text-slate-400 text-sm">Track your submission history and efficiency.</p>
-            </motion.div>
+            )}
+        </motion.div>
 
-             {/* Card 3 */}
-             <motion.div whileHover={{ y: -5 }} className="bg-white dark:bg-[#111111] p-8 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 shadow-sm hover:border-[#1AA3A3] hover:bg-[#1AA3A3]/5 dark:hover:bg-[#1AA3A3]/5 transition-all cursor-pointer flex flex-col items-center justify-center text-center h-full min-h-[200px]">
-                <div className="size-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4 text-slate-400">
-                      <span className="text-2xl">+</span>
-                </div>
-                <h3 className="font-semibold text-slate-600 dark:text-slate-300">Create New Report</h3>
-            </motion.div>
-        </div>
       </div>
     </div>
   );
