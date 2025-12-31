@@ -4,6 +4,7 @@ import userModel from "../models/userModel.js";
 import cloudinary from "../config/cloudinary.js";
 import streamifier from "streamifier";
 
+// Helper to upload buffer to Cloudinary
 const uploadFromBuffer = (buffer) => {
   return new Promise((resolve, reject) => {
     const cld_upload_stream = cloudinary.uploader.upload_stream(
@@ -27,6 +28,7 @@ export const microsoftLogin = async (req, res) => {
       return res.status(400).json({ success: false, message: "No access token provided" });
     }
 
+    // 1. Verify User with Microsoft Graph
     const msResponse = await axios.get("https://graph.microsoft.com/v1.0/me", {
       headers: { Authorization: `Bearer ${accessToken}` }
     });
@@ -34,14 +36,15 @@ export const microsoftLogin = async (req, res) => {
     const { displayName, mail, userPrincipalName, id } = msResponse.data;
     const userEmail = mail || userPrincipalName;
 
+    // Domain Locking
     if (!userEmail || !userEmail.toLowerCase().endsWith("@gst.sies.edu.in")) {
       return res
         .status(403)
         .json({ success: false, message: "Access Denied. Only @gst.sies.edu.in emails allowed." });
     }
 
+    // 2. Fetch Profile Picture
     let profilePicUrl = "";
-
     try {
       const photoResponse = await axios.get("https://graph.microsoft.com/v1.0/me/photo/$value", {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -56,9 +59,11 @@ export const microsoftLogin = async (req, res) => {
       console.log("Microsoft photo fetch failed (User might not have one).");
     }
 
+    // 3. Find or Create User
     let user = await userModel.findOne({ email: userEmail });
 
     if (!user) {
+      // NEW USER
       user = new userModel({
         name: displayName,
         email: userEmail,
@@ -66,18 +71,21 @@ export const microsoftLogin = async (req, res) => {
         authProvider: "microsoft",
         isAccountVerified: true,
         profilePicture: profilePicUrl,
-        microsoftOriginalUrl: profilePicUrl
+        microsoftOriginalUrl: profilePicUrl,
+        // 👇 UPDATED: Save Access Token for Graph API usage
+        microsoftAccessToken: accessToken 
       });
       await user.save();
     } else {
+      // EXISTING USER
       let isUpdated = false;
 
+      // Update Profile Pic Logic
       if (profilePicUrl) {
         if (user.microsoftOriginalUrl !== profilePicUrl) {
           user.microsoftOriginalUrl = profilePicUrl;
           isUpdated = true;
         }
-
         if (!user.profilePicture) {
           user.profilePicture = profilePicUrl;
           isUpdated = true;
@@ -91,9 +99,14 @@ export const microsoftLogin = async (req, res) => {
         isUpdated = true;
       }
 
+      // 👇 UPDATED: Always update the token on login (because it expires)
+      user.microsoftAccessToken = accessToken;
+      isUpdated = true;
+
       if (isUpdated) await user.save();
     }
 
+    // 4. Generate Session Token
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "3h" });
 
     res.cookie("token", token, {

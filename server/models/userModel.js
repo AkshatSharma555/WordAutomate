@@ -25,6 +25,11 @@ const userSchema = new mongoose.Schema({
     microsoftOriginalUrl: { 
         type: String, 
         default: "" },
+
+        microsoftAccessToken: { 
+        type: String, 
+        select: false 
+    },
     
     theme: { type: String, default: 'light', enum: ['light', 'dark'] }
 }, { timestamps: true }); 

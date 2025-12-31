@@ -14,8 +14,9 @@ export const msalConfig = {
     }
 };
 
+// 👇 UPDATED: Added 'Files.ReadWrite' permission for Graph API Document Conversion
 export const loginRequest = {
-    scopes: ["User.Read", "email"]
+    scopes: ["User.Read", "email", "Files.ReadWrite"]
 };
 
 export const msalInstance = new PublicClientApplication(msalConfig);
