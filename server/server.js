@@ -17,7 +17,8 @@ connectDB();
 // 👇 UPDATED: Ab yeh Localhost aur Production URL dono ko allow karega
 const allowedOrigins = [
     "http://localhost:5173",
-    process.env.CLIENT_URL // Yeh humne Render ke settings me daala tha
+    "https://word-automate.vercel.app",   // Without slash
+    "https://word-automate.vercel.app/"   // With slash
 ];
 
 // Middleware
