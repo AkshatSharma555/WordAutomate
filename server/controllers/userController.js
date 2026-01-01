@@ -1,5 +1,6 @@
 import userModel from "../models/userModel.js";
 import imagekit from "../config/imagekit.js";
+import { getFriendshipStatus } from "./friendController.js";
 
 export const getUserData = async (req, res) => {
   try {
@@ -151,4 +152,44 @@ export const updatePersonalInfo = async (req, res) => {
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
     }
+};
+
+export const getAllStudents = async (req, res) => {
+  try {
+    const { branch, year, search } = req.query;
+    
+    const currentUserId = req.body.userId || req.user?._id;
+
+    if (!currentUserId) {
+        return res.json({ success: false, message: "User ID missing from request." });
+    }
+
+    let query = {
+      _id: { $ne: currentUserId }
+    };
+
+    if (branch && branch !== 'null' && branch !== 'undefined') {
+        query.branch = branch;
+    }
+    
+    if (year && year !== 'null' && year !== 'undefined') {
+        query.year = year;
+    }
+
+    if (search) {
+      query.name = { $regex: search, $options: 'i' }; 
+    }
+
+    const users = await userModel.find(query).select('name email profilePicture branch year prn');
+
+    const usersWithStatus = await Promise.all(users.map(async (user) => {
+      const status = await getFriendshipStatus(currentUserId, user._id);
+      return { ...user.toObject(), friendStatus: status }; 
+    }));
+
+    res.json({ success: true, users: usersWithStatus });
+
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
 };
