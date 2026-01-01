@@ -6,7 +6,6 @@ export const sendFriendRequest = async (req, res) => {
   try {
     const { receiverId } = req.body;
     
-    // 👇 FIX: Robust ID Check
     const senderId = req.body.userId || req.user?._id;
 
     if (!senderId) {
@@ -50,7 +49,6 @@ export const respondToRequest = async (req, res) => {
   try {
     const { requestId, action } = req.body; // action: 'accept' or 'reject'
     
-    // 👇 FIX: Robust ID Check
     const userId = req.body.userId || req.user?._id;
 
     if (!userId) {
@@ -85,7 +83,6 @@ export const respondToRequest = async (req, res) => {
 // 3. Mere Saare Friends Lao (For 'Friends' Page & PDF Generation List)
 export const getMyFriends = async (req, res) => {
   try {
-    // 👇 FIX: Robust ID Check
     const userId = req.body.userId || req.user?._id;
 
     if (!userId) {
@@ -97,8 +94,9 @@ export const getMyFriends = async (req, res) => {
       $or: [{ sender: userId }, { receiver: userId }],
       status: 'accepted'
     })
-    .populate('sender', 'name email profilePicture branch year')
-    .populate('receiver', 'name email profilePicture branch year');
+    // 👇 FIX: Yahan 'prn' add kiya hai. Pehle ye missing tha!
+    .populate('sender', 'name email profilePicture branch year prn')
+    .populate('receiver', 'name email profilePicture branch year prn');
 
     // List ko clean karo (sirf dost ka data chahiye, mera nahi)
     const friends = connections.map(conn => {
@@ -119,7 +117,6 @@ export const getMyFriends = async (req, res) => {
 // 4. Pending Requests Lao (For Notifications)
 export const getPendingRequests = async (req, res) => {
   try {
-    // 👇 FIX: Robust ID Check
     const userId = req.body.userId || req.user?._id;
 
     if (!userId) {
@@ -130,7 +127,9 @@ export const getPendingRequests = async (req, res) => {
     const requests = await friendRequestModel.find({
       receiver: userId,
       status: 'pending'
-    }).populate('sender', 'name email profilePicture branch year');
+    })
+    // 👇 FIX: Yahan bhi 'prn' add kar diya (future proofing)
+    .populate('sender', 'name email profilePicture branch year prn');
 
     res.json({ success: true, requests });
 
@@ -154,11 +153,10 @@ export const getFriendshipStatus = async (currentUserId, otherUserId) => {
     return 'received';
 };
 
-
+// 6. Withdraw Request
 export const withdrawRequest = async (req, res) => {
   try {
     const { receiverId } = req.body;
-    // Robust ID check
     const senderId = req.body.userId || req.user?._id;
 
     if (!senderId) return res.json({ success: false, message: "User ID missing." });

@@ -5,6 +5,8 @@ import Logo from '../components/common/Logo';
 import { ShieldCheck, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Breadcrumb from '../components/common/Breadcrumb';
+// 👇 NEW IMPORT (Developer Testing Only)
+import DevLoginPanel from '../components/auth/DevLoginPanel'; 
 
 const Login = () => {
   const { login } = useAuth();
@@ -107,6 +109,10 @@ const Login = () => {
         @keyframes shine { 100% { left: 125%; } }
         .group-hover\\:animate-shine { animation: shine 0.75s; }
       `}</style>
+      
+      {/* 👇 DEV LOGIN (Bug Icon for Testing) */}
+      <DevLoginPanel />
+      
     </div>
   );
 };

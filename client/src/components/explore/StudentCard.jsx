@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { UserPlus, UserCheck, Loader2, ShieldCheck, Clock, CheckCircle2, AlertCircle, X, Check } from 'lucide-react';
+import { UserPlus, UserCheck, Loader2, ShieldCheck, Clock, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom'; // 👈 IMPORT ADDED
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const StudentCard = ({ student, setToast, onViewProfile }) => {
   const [status, setStatus] = useState(student.friendStatus || 'none');
   const [loading, setLoading] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false); // Confirmation Pop-up State
+  const [showConfirm, setShowConfirm] = useState(false);
+  
+  const navigate = useNavigate(); // 👈 INIT HOOK
 
   // 1. Send Request
   const handleConnect = async (e) => {
@@ -28,17 +31,17 @@ const StudentCard = ({ student, setToast, onViewProfile }) => {
     }
   };
 
-  // 2. Withdraw Request (Cancel)
+  // 2. Withdraw Request
   const handleWithdraw = async (e) => {
     e.stopPropagation();
-    setShowConfirm(false); // Close confirmation
+    setShowConfirm(false);
     setLoading(true);
 
     try {
       const { data } = await axios.post(`${API_URL}/user/friend-request/withdraw`, { receiverId: student._id }, { withCredentials: true });
       
       if (data.success) {
-        setStatus('none'); // Revert to Connect button
+        setStatus('none');
         setToast({ show: true, message: "Request withdrawn", type: 'info' });
       } else {
         setToast({ show: true, message: data.message, type: 'error' });
@@ -50,6 +53,12 @@ const StudentCard = ({ student, setToast, onViewProfile }) => {
     }
   };
 
+  // 3. Navigate to Requests Page
+  const handleRespond = (e) => {
+    e.stopPropagation();
+    navigate('/friends'); // 👈 Redirects to Network/Friends page
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
@@ -59,7 +68,7 @@ const StudentCard = ({ student, setToast, onViewProfile }) => {
       className="bg-white dark:bg-[#111111] rounded-[24px] p-6 border border-slate-200/60 dark:border-slate-800 shadow-sm transition-all duration-300 relative group cursor-pointer overflow-hidden"
     >
       
-      {/* --- CONFIRMATION OVERLAY (Premium Pop-up) --- */}
+      {/* --- CONFIRMATION OVERLAY --- */}
       <AnimatePresence>
         {showConfirm && (
           <motion.div 
@@ -96,7 +105,6 @@ const StudentCard = ({ student, setToast, onViewProfile }) => {
 
       {/* --- NORMAL CARD CONTENT --- */}
       
-      {/* Top Gradient Line */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#1AA3A3]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
       {/* Badges */}
@@ -152,7 +160,6 @@ const StudentCard = ({ student, setToast, onViewProfile }) => {
               <span>Request Sent</span>
             </button>
             
-            {/* 👇 WITHDRAW BUTTON (Chota text properly placed) */}
             <button 
               onClick={(e) => { e.stopPropagation(); setShowConfirm(true); }}
               className="text-[10px] font-bold text-slate-400 hover:text-red-500 transition-colors flex items-center gap-1 py-1"
@@ -162,9 +169,14 @@ const StudentCard = ({ student, setToast, onViewProfile }) => {
           </div>
         )}
         
+        {/* 👇 UPDATED: ACTIONABLE BUTTON FOR RECEIVED REQUESTS */}
         {status === 'received' && (
-          <button className="w-full h-11 rounded-xl bg-purple-500/5 border border-purple-500/20 text-purple-600 dark:text-purple-400 text-sm font-bold flex items-center justify-center gap-2 cursor-default">
-             <CheckCircle2 size={16} /> <span>Pending Action</span>
+          <button 
+            onClick={handleRespond}
+            className="w-full h-11 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg shadow-purple-500/20"
+          >
+             <span>Respond</span>
+             <ArrowRight size={16} />
           </button>
         )}
       </div>
