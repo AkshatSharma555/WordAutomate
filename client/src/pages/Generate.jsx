@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { AnimatePresence } from 'framer-motion';
-import { Wand2, Loader2, Users, UploadCloud, ArrowLeft, Info, RefreshCcw } from 'lucide-react'; // Added RefreshCcw
+import { Wand2, Loader2, Users, UploadCloud, ArrowLeft, RefreshCcw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import DashboardNavbar from '../components/layout/DashboardNavbar';
 import { useAuth } from '../context/AuthContext';
@@ -75,7 +75,7 @@ const Generate = () => {
     setSelectedIds(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
-    setErrorMsg(""); // Clear error when user interacts
+    setErrorMsg(""); 
   };
 
   const toggleAll = (idsToSelect) => {
@@ -88,7 +88,7 @@ const Generate = () => {
 
     setIsGenerating(true);
     setGenerationResults([]); 
-    setErrorMsg(""); // Reset error message on start
+    setErrorMsg(""); 
 
     const selectedStudents = friends.filter(s => selectedIds.includes(s.id));
     const total = selectedStudents.length;
@@ -106,7 +106,6 @@ const Generate = () => {
     let hasSessionError = false;
 
     for (let i = 0; i < total; i++) {
-        // Stop if session expired detected in previous iteration
         if (hasSessionError) break;
 
         const student = selectedStudents[i];
@@ -140,8 +139,6 @@ const Generate = () => {
             }
         } catch (error) {
             console.error("Gen loop error:", error);
-            
-            // Check for 401 specifically
             if (error.response && error.response.status === 401) {
                 setErrorMsg("Session expired. Please login again.");
                 hasSessionError = true;
@@ -156,7 +153,6 @@ const Generate = () => {
     setProcessedIds(prev => [...prev, ...successfulIds]);
     setIsGenerating(false);
 
-    // Only switch to complete view if we didn't crash on session error
     if (!hasSessionError) {
         setIsComplete(true);
     }
@@ -172,10 +168,7 @@ const Generate = () => {
   const getButtonState = () => {
      if (!file) return { disabled: true, text: "Upload Template First", icon: <UploadCloud size={20} /> };
      if (selectedIds.length === 0) return { disabled: true, text: "Select Students", icon: <Users size={20} /> };
-     
-     // If error exists, allow retry state logic if needed, or keep disabled until resolved
      if (errorMsg) return { disabled: false, text: "Retry Generation", icon: <RefreshCcw size={20} /> };
-
      return { disabled: false, text: `Process Batch (${selectedIds.length})`, icon: <Wand2 size={20} /> };
   };
   const btnState = getButtonState();
@@ -184,47 +177,35 @@ const Generate = () => {
     <div className="h-screen flex flex-col bg-[#F3F2ED] dark:bg-[#050505] overflow-hidden">
       <DashboardNavbar user={currentUser} onLogout={logout} />
 
-      {/* Main Content - Pushed content up by reducing top padding */}
+      {/* Main Container - Pushed content up & Handles Responsiveness */}
       <div className="flex-1 flex flex-col pt-20 pb-4 px-4 md:px-8 max-w-[1600px] mx-auto w-full h-full overflow-hidden">
         
-        {/* PLAN A: COMPACT HEADER */}
-        <div className="shrink-0 mb-3 pt-2">
-           
-           {/* 1. Back Navigation (Minimalist) */}
-           <Link 
-             to="/dashboard" 
-             className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 transition-colors mb-1"
-           >
+        {/* HEADER SECTION */}
+        <div className="shrink-0 mb-4 pt-2">
+           <Link to="/dashboard" className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 transition-colors mb-2">
               <ArrowLeft size={14} /> Back to Dashboard
            </Link>
-
-           {/* 2. Title Row with Integrated Badge */}
-           <div className="flex items-center justify-between">
+           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight leading-none">
                  Document Workbench
                </h1>
-               
-               {/* 3. Info Badge (Saves vertical space) */}
-               <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-900 rounded-full border border-slate-200 dark:border-slate-800">
+               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-900 rounded-full border border-slate-200 dark:border-slate-800 self-start sm:self-auto">
                   <div className="size-2 bg-[#1AA3A3] rounded-full animate-pulse shadow-[0_0_8px_#1AA3A3]" />
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                    Optimized for: <strong>5 Students/Batch</strong>
-                  </span>
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Optimized for: <strong>5 Students/Batch</strong></span>
                </div>
            </div>
         </div>
 
-        {/* WORKSPACE GRID - Takes remaining height */}
-        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* WORKSPACE GRID - Responsive Grid */}
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 overflow-hidden">
            
-           {/* LEFT: Uploader */}
-           <div className="lg:col-span-4 h-full min-h-[300px] bg-white dark:bg-[#111111] rounded-[24px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+           {/* LEFT: Uploader - Height adjusts on mobile, fixed ratio on desktop */}
+           <div className="lg:col-span-4 flex flex-col h-[300px] lg:h-full lg:min-h-0 bg-white dark:bg-[#111111] rounded-[24px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden order-1">
               <TemplateUploader file={file} setFile={setFile} />
            </div>
 
-           {/* RIGHT: Selector/Action */}
-           <div className="lg:col-span-8 h-full min-h-[400px] bg-white dark:bg-[#111111] rounded-[24px] border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden flex flex-col">
-              
+           {/* RIGHT: Selector/Action - Height adjusts */}
+           <div className="lg:col-span-8 flex flex-col h-full min-h-0 bg-white dark:bg-[#111111] rounded-[24px] border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden order-2">
               {!isComplete ? (
                  loadingFriends ? (
                    <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
@@ -233,9 +214,7 @@ const Generate = () => {
                    </div>
                  ) : friends.length === 0 ? (
                    <div className="flex-1 flex flex-col items-center justify-center text-slate-400 text-center px-6">
-                      <div className="size-16 bg-slate-100 dark:bg-slate-900 rounded-full flex items-center justify-center mb-4">
-                        <Users size={24} />
-                      </div>
+                      <div className="size-16 bg-slate-100 dark:bg-slate-900 rounded-full flex items-center justify-center mb-4"><Users size={24} /></div>
                       <h3 className="text-lg font-bold text-slate-700 dark:text-white">No Friends Found</h3>
                       <a href="/explore" className="text-[#1AA3A3] font-bold hover:underline mt-2">Connect with friends</a>
                    </div>
@@ -248,7 +227,7 @@ const Generate = () => {
                      toggleAll={toggleAll}
                      onGenerate={handleGenerate}
                      btnState={btnState}
-                     errorMessage={errorMsg} // Pass error message prop
+                     errorMessage={errorMsg}
                    />
                  )
               ) : (
@@ -261,7 +240,6 @@ const Generate = () => {
               <AnimatePresence>
                 {isGenerating && <ProcessingOverlay status={processStatus} />}
               </AnimatePresence>
-
            </div>
         </div>
       </div>
