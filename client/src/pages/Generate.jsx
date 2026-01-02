@@ -120,7 +120,12 @@ const Generate = () => {
             });
 
             if (data.success) {
-                results.push({ ...student, pdfUrl: data.pdfUrl, success: true });
+             results.push({ 
+                    ...student, 
+                    pdfUrl: data.pdfUrl, 
+                    docId: data.results?.docId || data.docId, 
+                    success: true 
+                });
                 successfulIds.push(student.id);
             }
         } catch (error) {

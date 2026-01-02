@@ -6,6 +6,7 @@ import axios from "axios";
 import cloudinary from "../config/cloudinary.js";
 import documentModel from "../models/documentModel.js";
 import userModel from "../models/userModel.js";
+import sharedDocModel from "../models/sharedDocModel.js"
 
 const deleteFile = (filePath) => {
     try {
@@ -107,7 +108,8 @@ export const generateDocument = async (req, res) => {
             success: true,
             studentId: student.id,
             name: student.name,
-            pdfUrl: uploadCloudResponse.secure_url
+            pdfUrl: uploadCloudResponse.secure_url,
+            docId: newDoc._id
         });
 
     } catch (error) {
@@ -119,5 +121,42 @@ export const generateDocument = async (req, res) => {
 
         const status = (error.response && error.response.status === 401) ? 401 : 500;
         return res.status(status).json({ success: false, message: error.message });
+    }
+};
+
+
+export const shareDocument = async (req, res) => {
+    try {
+        const { documentId, receiverId } = req.body;
+        const senderId = req.userId;
+
+        if (!documentId || !receiverId) {
+            return res.json({ success: false, message: "Missing details" });
+        }
+
+        // Check duplicate
+        const existingShare = await sharedDocModel.findOne({
+            sender: senderId,
+            receiver: receiverId,
+            document: documentId
+        });
+
+        if (existingShare) {
+            return res.json({ success: true, message: "Already shared" });
+        }
+
+        const newShare = new sharedDocModel({
+            sender: senderId,
+            receiver: receiverId,
+            document: documentId
+        });
+
+        await newShare.save();
+
+        res.json({ success: true, message: "Shared successfully" });
+
+    } catch (error) {
+        console.error("Share Error:", error);
+        res.json({ success: false, message: error.message });
     }
 };

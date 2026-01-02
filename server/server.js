@@ -7,6 +7,7 @@ import connectDB from "./config/mongodb.js";
 import authRouter from "./routes/authRoutes.js";
 import userRouter from "./routes/userRoutes.js";
 import docRouter from "./routes/docRoutes.js";
+import workspaceRouter from "./routes/workspaceRoutes.js";
 
 const app = express();
 const port = process.env.PORT || 5000; 
@@ -45,6 +46,7 @@ app.get("/", (req, res) => res.send("API Working on Port 5000"));
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/document", docRouter);
+app.use("/api/workspace", workspaceRouter);
 
 // Server Start
 app.listen(port, () => console.log(`Server started on PORT: ${port}`));

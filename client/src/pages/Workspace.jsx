@@ -1,91 +1,230 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
+import { Search, FolderOpen, Loader2, Home, ChevronRight, RefreshCw, Filter } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
+
 import DashboardNavbar from '../components/layout/DashboardNavbar';
 import { useAuth } from '../context/AuthContext';
-import { Search, Filter, FolderOpen } from 'lucide-react';
-
-// Sub Components
 import StatsBar from '../components/workspace/StatsBar';
-import WorkspaceTabs from '../components/workspace/WorkspaceTabs';
 import FileCard from '../components/workspace/FileCard';
+import WorkspaceTabs from '../components/workspace/WorkspaceTabs';
 
-// MOCK DATA (Jab tak backend nahi judta)
-const MOCK_RECEIVED = [
-  { id: 1, fileName: "CN_Experiment_4_Virat.pdf", date: "Oct 24, 2025", size: "2.4 MB", sender: { name: "Virat Kohli", img: "https://upload.wikimedia.org/wikipedia/commons/e/ef/Virat_Kohli_during_the_India_vs_Aus_4th_Test_match_at_Narendra_Modi_Stadium_on_09_March_2023.jpg" } },
-  { id: 2, fileName: "DBMS_Lab_Manual_Final.pdf", date: "Oct 22, 2025", size: "5.1 MB", sender: { name: "Rohit Sharma", img: "https://upload.wikimedia.org/wikipedia/commons/1/1e/Prime_Minister_Of_Bharat_Shri_Narendra_Damodardas_Modi_with_Shri_Rohit_Gurunath_Sharma_%28Cropped%29.jpg" } },
-];
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-const MOCK_HISTORY = [
-  { id: 101, fileName: "Web_Dev_Exp_5_Batch_A.zip", date: "Today, 10:30 AM", size: "12 MB", recipients: [
-      { img: "https://upload.wikimedia.org/wikipedia/commons/e/ef/Virat_Kohli_during_the_India_vs_Aus_4th_Test_match_at_Narendra_Modi_Stadium_on_09_March_2023.jpg" },
-      { img: "https://upload.wikimedia.org/wikipedia/commons/1/1e/Prime_Minister_Of_Bharat_Shri_Narendra_Damodardas_Modi_with_Shri_Rohit_Gurunath_Sharma_%28Cropped%29.jpg" },
-      { img: "https://cdn-icons-png.flaticon.com/512/149/149071.png" },
-      { img: "https://cdn-icons-png.flaticon.com/512/149/149071.png" }
-  ]},
-  { id: 102, fileName: "Python_Journal_Batch_B.zip", date: "Yesterday", size: "45 MB", recipients: [
-      { img: "https://upload.wikimedia.org/wikipedia/commons/9/94/Hardik_Pandya_in_PMO_New_Delhi.jpg" },
-      { img: "https://upload.wikimedia.org/wikipedia/commons/a/a2/Jasprit_Bumrah_in_PMO_New_Delhi.jpg" }
-  ]},
-];
+// Animation Variants for Staggered List
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05
+    }
+  }
+};
 
 const Workspace = () => {
   const { currentUser, logout } = useAuth();
+  
   const [activeTab, setActiveTab] = useState('received');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Data States
+  const [stats, setStats] = useState(null);
+  const [files, setFiles] = useState([]);
+  
+  // Loading States
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [loadingFiles, setLoadingFiles] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // 1. Fetch Stats
+  const fetchStats = useCallback(async () => {
+    try {
+        const { data } = await axios.get(`${API_URL}/workspace/stats`, { withCredentials: true });
+        if (data.success) setStats(data.stats);
+    } catch (error) {
+        console.error("Stats Error:", error);
+    } finally {
+        setLoadingStats(false);
+    }
+  }, []);
+
+  // 2. Fetch Files
+  const fetchFiles = useCallback(async () => {
+    setLoadingFiles(true);
+    try {
+        const { data } = await axios.get(`${API_URL}/workspace/files?type=${activeTab}`, { withCredentials: true });
+        if (data.success) setFiles(data.files);
+    } catch (error) {
+        console.error("Files Error:", error);
+        setFiles([]);
+    } finally {
+        setLoadingFiles(false);
+    }
+  }, [activeTab]);
+
+  // Initial Load
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  useEffect(() => {
+    fetchFiles();
+  }, [fetchFiles]);
+
+  // Manual Refresh Handler
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchStats(), fetchFiles()]);
+    setTimeout(() => setRefreshing(false), 500);
+  };
+
+  // Handle Mark Seen
+  const handleMarkSeen = (id) => {
+      setFiles(prev => prev.map(f => f.id === id ? { ...f, isSeen: true } : f));
+  };
 
   // Filter Logic
-  const dataList = activeTab === 'received' ? MOCK_RECEIVED : MOCK_HISTORY;
-  const filteredData = dataList.filter(item => 
-    item.fileName.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredFiles = files.filter(item => 
+    item.fileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.user?.name || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
-    <div className="min-h-screen bg-[#F3F2ED] dark:bg-[#050505] flex flex-col">
+    <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#050505] flex flex-col font-sans selection:bg-[#1AA3A3]/20 selection:text-[#1AA3A3]">
       <DashboardNavbar user={currentUser} onLogout={logout} />
 
-      <div className="flex-1 pt-24 pb-10 px-4 md:px-8 max-w-6xl mx-auto w-full">
+      {/* Background Decor (Subtle Grid & Glow) */}
+      <div className="fixed inset-0 pointer-events-none">
+          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
+          <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-blue-500/5 dark:bg-blue-500/10 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-[#1AA3A3]/5 dark:bg-[#1AA3A3]/10 rounded-full blur-[100px]" />
+      </div>
+
+      <div className="flex-1 pt-24 pb-10 px-4 md:px-8 max-w-[1400px] mx-auto w-full relative z-10">
         
-        {/* Header */}
-        <div className="mb-6">
-           <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
-             Workspace
-           </h1>
-           <p className="text-slate-500 text-sm mt-1">
-             Manage your received files and generation history.
-           </p>
-        </div>
+        {/* 1. BREADCRUMBS & HEADER */}
+        <div className="mb-8">
+           {/* Breadcrumb Row */}
+           <nav className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 animate-fade-in-up">
+              <Link to="/dashboard" className="flex items-center gap-1 hover:text-[#1AA3A3] transition-colors">
+                 <Home size={14} />
+                 <span>Home</span>
+              </Link>
+              <ChevronRight size={14} className="opacity-50" />
+              <Link to="/dashboard" className="hover:text-[#1AA3A3] transition-colors">
+                 Dashboard
+              </Link>
+              <ChevronRight size={14} className="opacity-50" />
+              <span className="text-slate-900 dark:text-white font-bold bg-slate-200/50 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                 Workspace
+              </span>
+           </nav>
 
-        {/* 1. TOP STATS */}
-        <StatsBar stats={{ received: 12, generated: 45, storage: "120 MB" }} />
+           {/* Title Row */}
+           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div>
+                <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
+                    My Workspace
+                </h1>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 font-medium max-w-lg">
+                    Manage your shared ecosystem. Track received documents and monitor the impact of files you've shared.
+                </p>
+              </div>
 
-        {/* 2. CONTROLS (Search & Tabs) */}
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-           {/* Search */}
-           <div className="relative w-full md:w-96">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input 
-                type="text" 
-                placeholder="Search files by name..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#111111] border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:border-[#1AA3A3] transition-colors"
-              />
+              {/* Refresh Action */}
+              <button 
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white dark:bg-[#111111] border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm active:scale-95 disabled:opacity-50"
+              >
+                <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+                {refreshing ? "Syncing..." : "Refresh Data"}
+              </button>
            </div>
-
-           {/* Tabs */}
-           <WorkspaceTabs activeTab={activeTab} setActiveTab={setActiveTab} />
         </div>
 
-        {/* 3. FILE LIST AREA */}
-        <div className="space-y-3 min-h-[300px]">
-           {filteredData.length === 0 ? (
-             <div className="flex flex-col items-center justify-center py-20 text-slate-400 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl">
-                <FolderOpen size={40} className="mb-4 opacity-50" />
-                <p>No files found.</p>
-             </div>
+        {/* 2. STATS BAR (Premium) */}
+        <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+        >
+            <StatsBar stats={stats} loading={loadingStats} />
+        </motion.div>
+
+        {/* 3. STICKY CONTROLS BAR (Glassmorphism) */}
+        <div className="sticky top-20 z-30 mb-6">
+           <div className="absolute inset-0 bg-white/70 dark:bg-[#050505]/70 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-2xl shadow-sm -mx-4 md:-mx-6" />
+           
+           <div className="relative flex flex-col md:flex-row justify-between items-center gap-4 py-3 px-1 md:px-0">
+               {/* Search */}
+               <div className="relative w-full md:w-96 group">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#1AA3A3] transition-colors" size={16} />
+                  <input 
+                    type="text" 
+                    placeholder={activeTab === 'received' ? "Search by file name or sender..." : "Search sent history..."}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/50 dark:bg-[#1a1a1a]/50 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium focus:outline-none focus:border-[#1AA3A3] focus:ring-4 focus:ring-[#1AA3A3]/5 transition-all shadow-sm placeholder:text-slate-400"
+                  />
+               </div>
+
+               {/* Custom Segmented Tabs */}
+               <WorkspaceTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+           </div>
+        </div>
+
+        {/* 4. FILE LIST (Staggered Animation) */}
+        <div className="min-h-[400px] relative">
+           {loadingFiles ? (
+              // Loader
+              <div className="flex flex-col items-center justify-center py-24">
+                 <Loader2 size={36} className="text-[#1AA3A3] animate-spin mb-4" />
+                 <p className="text-sm font-medium text-slate-400 animate-pulse">Synchronizing documents...</p>
+              </div>
+           ) : filteredFiles.length === 0 ? (
+              // Premium Empty State
+              <motion.div 
+                 initial={{ opacity: 0, scale: 0.95 }}
+                 animate={{ opacity: 1, scale: 1 }}
+                 className="flex flex-col items-center justify-center py-28 px-4 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-[32px] bg-slate-50/50 dark:bg-[#111111]/30"
+              >
+                 <div className="size-20 bg-white dark:bg-[#1a1a1a] rounded-full flex items-center justify-center mb-6 shadow-sm ring-1 ring-slate-100 dark:ring-slate-800">
+                    <FolderOpen size={32} className="text-slate-300 dark:text-slate-600" />
+                 </div>
+                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">No documents found</h3>
+                 <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto leading-relaxed">
+                    {activeTab === 'received' 
+                        ? "Your inbox is empty. When friends share documents with you, they'll appear here automatically." 
+                        : "You haven't shared any documents yet. Go to the Generator to create and share your first batch."}
+                 </p>
+                 {activeTab === 'sent' && (
+                     <Link to="/generate" className="mt-6 px-6 py-2.5 bg-[#1AA3A3] text-white rounded-xl text-sm font-bold hover:bg-[#158585] transition-all shadow-lg shadow-[#1AA3A3]/20">
+                        Create New Batch
+                     </Link>
+                 )}
+              </motion.div>
            ) : (
-             filteredData.map((file) => (
-               <FileCard key={file.id} file={file} type={activeTab} />
-             ))
+              // List Grid
+              <motion.div 
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="grid grid-cols-1 gap-3"
+              >
+                 <AnimatePresence mode='popLayout'>
+                    {filteredFiles.map((file) => (
+                       <FileCard 
+                          key={file.id} 
+                          file={file} 
+                          type={activeTab} 
+                          onMarkSeen={handleMarkSeen}
+                       />
+                    ))}
+                 </AnimatePresence>
+              </motion.div>
            )}
         </div>
 
