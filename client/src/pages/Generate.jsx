@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { AnimatePresence } from 'framer-motion';
-import { Wand2, Loader2, Users, UploadCloud, ArrowLeft, Info } from 'lucide-react'; // Added ArrowLeft, Info
+import { Wand2, Loader2, Users, UploadCloud, ArrowLeft, Info, RefreshCcw } from 'lucide-react'; // Added RefreshCcw
 import { Link } from 'react-router-dom';
 import DashboardNavbar from '../components/layout/DashboardNavbar';
 import { useAuth } from '../context/AuthContext';
@@ -27,6 +27,9 @@ const Generate = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isComplete, setIsComplete] = useState(false); 
   
+  // New State for Error Message
+  const [errorMsg, setErrorMsg] = useState("");
+
   const [processStatus, setProcessStatus] = useState({
      current: 0, total: 0, name: "", img: "", timeLeft: 0
   });
@@ -72,10 +75,12 @@ const Generate = () => {
     setSelectedIds(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
+    setErrorMsg(""); // Clear error when user interacts
   };
 
   const toggleAll = (idsToSelect) => {
      setSelectedIds(idsToSelect);
+     setErrorMsg("");
   };
 
   const handleGenerate = async () => {
@@ -83,6 +88,7 @@ const Generate = () => {
 
     setIsGenerating(true);
     setGenerationResults([]); 
+    setErrorMsg(""); // Reset error message on start
 
     const selectedStudents = friends.filter(s => selectedIds.includes(s.id));
     const total = selectedStudents.length;
@@ -97,8 +103,12 @@ const Generate = () => {
 
     const results = [];
     const successfulIds = [];
+    let hasSessionError = false;
 
     for (let i = 0; i < total; i++) {
+        // Stop if session expired detected in previous iteration
+        if (hasSessionError) break;
+
         const student = selectedStudents[i];
         
         setProcessStatus({
@@ -129,25 +139,43 @@ const Generate = () => {
                 successfulIds.push(student.id);
             }
         } catch (error) {
-            results.push({ ...student, success: false, error: error.response?.status === 401 ? "Session Expired (401)" : "Failed" });
+            console.error("Gen loop error:", error);
+            
+            // Check for 401 specifically
+            if (error.response && error.response.status === 401) {
+                setErrorMsg("Session expired. Please login again.");
+                hasSessionError = true;
+                results.push({ ...student, success: false, error: "Session Expired" });
+            } else {
+                results.push({ ...student, success: false, error: "Failed" });
+            }
         }
     }
 
     setGenerationResults(results);
     setProcessedIds(prev => [...prev, ...successfulIds]);
     setIsGenerating(false);
-    setIsComplete(true);
+
+    // Only switch to complete view if we didn't crash on session error
+    if (!hasSessionError) {
+        setIsComplete(true);
+    }
   };
 
   const handleReset = () => {
     setIsComplete(false);
     setSelectedIds([]);
     setGenerationResults([]);
+    setErrorMsg("");
   };
 
   const getButtonState = () => {
      if (!file) return { disabled: true, text: "Upload Template First", icon: <UploadCloud size={20} /> };
      if (selectedIds.length === 0) return { disabled: true, text: "Select Students", icon: <Users size={20} /> };
+     
+     // If error exists, allow retry state logic if needed, or keep disabled until resolved
+     if (errorMsg) return { disabled: false, text: "Retry Generation", icon: <RefreshCcw size={20} /> };
+
      return { disabled: false, text: `Process Batch (${selectedIds.length})`, icon: <Wand2 size={20} /> };
   };
   const btnState = getButtonState();
@@ -220,6 +248,7 @@ const Generate = () => {
                      toggleAll={toggleAll}
                      onGenerate={handleGenerate}
                      btnState={btnState}
+                     errorMessage={errorMsg} // Pass error message prop
                    />
                  )
               ) : (

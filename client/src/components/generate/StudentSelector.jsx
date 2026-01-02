@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Search, Users, CheckCircle2, Circle } from 'lucide-react';
+import { Search, Users, CheckCircle2, Circle, AlertCircle } from 'lucide-react';
 
-const StudentSelector = ({ students, selectedIds, processedIds, toggleSelection, toggleAll, onGenerate, btnState }) => {
+// 👇 'errorMessage' prop add kiya hai
+const StudentSelector = ({ students, selectedIds, processedIds, toggleSelection, toggleAll, onGenerate, btnState, errorMessage }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const LIMIT = 5;
 
@@ -14,16 +15,10 @@ const StudentSelector = ({ students, selectedIds, processedIds, toggleSelection,
      toggleSelection(id);
   };
 
-  // 👇 UPDATED LOGIC: "Pick 5"
   const handleSmartPick = () => {
-      // 1. Sirf wo students lo jo abhi tak process nahi huye hain
       const available = filteredStudents.filter(s => !processedIds.includes(s.id));
-      
-      // 2. Unme se Top 5 utha lo
-      // (Kyuki sorted list hai, toh ye hamesha "Next 5" hi honge)
       const nextBatchIds = available.slice(0, LIMIT).map(s => s.id);
       
-      // 3. Selection update karo
       if (nextBatchIds.length > 0) {
           toggleAll(nextBatchIds);
       }
@@ -34,7 +29,7 @@ const StudentSelector = ({ students, selectedIds, processedIds, toggleSelection,
   return (
     <div className="h-full flex flex-col relative bg-slate-50/50 dark:bg-[#0a0a0a]">
       
-      {/* 1. HEADER (Fixed Sticky Top) */}
+      {/* 1. HEADER */}
       <div className="shrink-0 p-5 bg-white dark:bg-[#111111] z-10 border-b border-slate-100 dark:border-slate-800 shadow-sm">
         <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
@@ -60,7 +55,6 @@ const StudentSelector = ({ students, selectedIds, processedIds, toggleSelection,
               className="w-full pl-9 pr-3 py-2 bg-slate-100 dark:bg-[#1a1a1a] border-none rounded-lg text-xs font-medium focus:ring-2 focus:ring-[#1AA3A3]/20 text-slate-900 dark:text-white transition-all placeholder:text-slate-400"
             />
           </div>
-          {/* 👇 UPDATED BUTTON */}
           <button 
             onClick={handleSmartPick}
             className="px-4 py-2 rounded-lg text-xs font-bold bg-slate-900 dark:bg-white text-white dark:text-black hover:opacity-90 transition-opacity whitespace-nowrap shadow-md"
@@ -70,7 +64,7 @@ const StudentSelector = ({ students, selectedIds, processedIds, toggleSelection,
         </div>
       </div>
 
-      {/* 2. GRID LIST (High Density) */}
+      {/* 2. GRID LIST */}
       <div className="flex-1 overflow-y-auto p-4 custom-scrollbar pb-32">
         {filteredStudents.length === 0 ? (
            <div className="flex flex-col items-center justify-center h-40 text-slate-400">
@@ -98,7 +92,6 @@ const StudentSelector = ({ students, selectedIds, processedIds, toggleSelection,
                               : 'bg-white dark:bg-[#1e1e1e] border-slate-200 dark:border-slate-800 hover:border-[#1AA3A3]/40 hover:shadow-sm'
                    }`}
                  >
-                   {/* Selection Indicator */}
                    <div className="absolute top-2 right-2 text-[#1AA3A3]">
                       {isSelected ? (
                           <CheckCircle2 size={16} className="fill-[#1AA3A3] text-white" />
@@ -107,14 +100,12 @@ const StudentSelector = ({ students, selectedIds, processedIds, toggleSelection,
                       )}
                    </div>
 
-                   {/* Avatar */}
                    <div className={`size-10 rounded-full overflow-hidden shrink-0 border transition-all ${
                        isSelected ? 'border-[#1AA3A3]' : 'border-slate-100 dark:border-slate-700'
                    }`}>
                       <img src={student.img} alt={student.name} className="w-full h-full object-cover" />
                    </div>
                    
-                   {/* Info */}
                    <div className="flex-1 min-w-0 pr-4">
                       <h4 className={`text-xs font-bold truncate transition-colors ${
                           isSelected ? 'text-[#1AA3A3]' : 'text-slate-700 dark:text-slate-200'
@@ -142,10 +133,19 @@ const StudentSelector = ({ students, selectedIds, processedIds, toggleSelection,
 
       {/* 3. FLOATING GLASS DOCK */}
       <div className="absolute bottom-0 left-0 right-0 p-6 z-20 pointer-events-none">
-         {/* Gradient Fade */}
          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#F3F2ED] via-[#F3F2ED]/90 to-transparent dark:from-[#050505] dark:via-[#050505]/90 dark:to-transparent" />
          
          <div className="relative pointer-events-auto">
+            {/* 👇 ERROR MESSAGE BOX (Only shows if errorMessage exists) */}
+            {errorMessage && (
+                <div className="mb-3 mx-1 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-center justify-center gap-2 animate-in slide-in-from-bottom-2 shadow-sm">
+                    <AlertCircle size={16} className="text-red-500 shrink-0" />
+                    <span className="text-xs font-bold text-red-600 dark:text-red-400">
+                        {errorMessage}
+                    </span>
+                </div>
+            )}
+
             <button 
               onClick={onGenerate}
               disabled={btnState.disabled}

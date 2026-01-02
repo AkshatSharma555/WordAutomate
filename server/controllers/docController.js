@@ -6,7 +6,7 @@ import axios from "axios";
 import cloudinary from "../config/cloudinary.js";
 import documentModel from "../models/documentModel.js";
 import userModel from "../models/userModel.js";
-import sharedDocModel from "../models/sharedDocModel.js"
+import sharedDocModel from "../models/sharedDocModel.js";
 
 const deleteFile = (filePath) => {
     try {
@@ -16,6 +16,7 @@ const deleteFile = (filePath) => {
     }
 };
 
+// 1. GENERATE DOCUMENT
 export const generateDocument = async (req, res) => {
     let tempDocPath = null;
     let outputPdfPath = null;
@@ -30,7 +31,7 @@ export const generateDocument = async (req, res) => {
 
         const user = await userModel.findById(req.userId).select('+microsoftAccessToken');
         if (!user || !user.microsoftAccessToken) {
-            return res.status(401).json({ success: false, message: "Session Expired" });
+            return res.status(401).json({ success: false, message: "Session Expired. Please reconnect Microsoft Account." });
         }
 
         // 1. Read & Replace
@@ -100,8 +101,7 @@ export const generateDocument = async (req, res) => {
             headers: { 'Authorization': `Bearer ${user.microsoftAccessToken}` }
         });
 
-        // Cleanup Local Template (Important: Do not delete original req.file here if reusing, 
-        // but since we send file every time, we delete it at end of request)
+        // Cleanup Local
         deleteFile(req.file.path); 
 
         return res.status(200).json({
@@ -109,22 +109,30 @@ export const generateDocument = async (req, res) => {
             studentId: student.id,
             name: student.name,
             pdfUrl: uploadCloudResponse.secure_url,
-            docId: newDoc._id
+            docId: newDoc._id // Used for Sharing
         });
 
     } catch (error) {
         console.error("Gen Error:", error.message);
-        if (req.file) deleteFile(req.file.path);
         
+        // Cleanup on Error
+        if (req.file) deleteFile(req.file.path);
         if (tempDocPath) deleteFile(tempDocPath);
         if (outputPdfPath) deleteFile(outputPdfPath);
 
-        const status = (error.response && error.response.status === 401) ? 401 : 500;
-        return res.status(status).json({ success: false, message: error.message });
+        // Specific handling for Microsoft Token Expiry
+        if (error.response && error.response.status === 401) {
+            return res.status(401).json({ 
+                success: false, 
+                message: "Microsoft Token Expired. Please logout and login again with Microsoft." 
+            });
+        }
+
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
 
-
+// 2. SHARE DOCUMENT API
 export const shareDocument = async (req, res) => {
     try {
         const { documentId, receiverId } = req.body;

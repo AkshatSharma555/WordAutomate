@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import sharedDocModel from "../models/sharedDocModel.js";
 import documentModel from "../models/documentModel.js";
 
@@ -6,7 +7,7 @@ export const getWorkspaceStats = async (req, res) => {
     try {
         const userId = req.userId;
 
-        // Promise.all use kar rahe hain taaki saari queries ek saath chalein (Faster)
+        // Promise.all for parallel execution
         const [receivedCount, sentCount, impactStats, totalGenerated] = await Promise.all([
             // 1. Total Files Received
             sharedDocModel.countDocuments({ receiver: userId }),
@@ -14,14 +15,14 @@ export const getWorkspaceStats = async (req, res) => {
             // 2. Total Files Shared (Sent)
             sharedDocModel.countDocuments({ sender: userId }),
             
-            // 3. Impact Score (Kitne logon ne mera bheja hua doc dekha?)
+            // 3. Impact Score (How many viewed my shared docs?)
             sharedDocModel.countDocuments({ sender: userId, isSeen: true }),
 
             // 4. Total Documents I Generated (Originals)
             documentModel.countDocuments({ userId: userId })
         ]);
 
-        // Impact Rate Calculate karte hain (e.g., 80% logo ne dekha)
+        // Impact Rate (Percentage)
         const impactRate = sentCount > 0 ? Math.round((impactStats / sentCount) * 100) : 0;
 
         res.json({
@@ -29,8 +30,8 @@ export const getWorkspaceStats = async (req, res) => {
             stats: {
                 received: receivedCount,
                 sent: sentCount,
-                impactScore: impactStats, // Total Views
-                impactRate: impactRate,   // Percentage
+                impactScore: impactStats,
+                impactRate: impactRate,
                 generated: totalGenerated
             }
         });
@@ -41,50 +42,110 @@ export const getWorkspaceStats = async (req, res) => {
     }
 };
 
-// 2. Fetch Files (Inbox vs Sent)
+// 2. Fetch Files (Inbox vs Sent - With Smart Grouping)
 export const fetchWorkspaceFiles = async (req, res) => {
     try {
         const userId = req.userId;
         const { type } = req.query; // 'received' or 'sent'
 
-        let query;
-        let populateOptions;
-
         if (type === 'received') {
-            // Agar Inbox hai: Mujhe Receiver hun, Sender ki details chahiye
-            query = { receiver: userId };
-            populateOptions = [
-                { path: 'sender', select: 'name profilePicture email' }, // Sender info
-                { path: 'document' } // File details (name, size, url)
-            ];
+            // --- INBOX LOGIC (Single Files) ---
+            const files = await sharedDocModel.find({ receiver: userId })
+                .populate('sender', 'name profilePicture email')
+                .populate('document')
+                .sort({ sharedAt: -1 });
+
+            // Filter out deleted documents
+            const cleanFiles = files.filter(f => f.document).map(f => ({
+                id: f._id,
+                isBatch: false,
+                sharedAt: f.sharedAt,
+                isSeen: f.isSeen,
+                fileName: f.document.generatedName,
+                fileUrl: f.document.pdfUrl,
+                user: f.sender
+            }));
+            
+            return res.json({ success: true, files: cleanFiles });
+
         } else {
-            // Agar Sent History hai: Main Sender hun, Receiver ki details chahiye
-            query = { sender: userId };
-            populateOptions = [
-                { path: 'receiver', select: 'name profilePicture email' }, // Kisko bheja?
-                { path: 'document' }
-            ];
+            // --- OUTBOX LOGIC (Smart Batch Grouping) ---
+            const objectIdUserId = new mongoose.Types.ObjectId(userId);
+
+            const groupedFiles = await sharedDocModel.aggregate([
+                { $match: { sender: objectIdUserId } },
+                // Join Document
+                {
+                    $lookup: {
+                        from: "documents",
+                        localField: "document",
+                        foreignField: "_id",
+                        as: "docDetails"
+                    }
+                },
+                { $unwind: "$docDetails" },
+                // Join Receiver
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "receiver",
+                        foreignField: "_id",
+                        as: "receiverDetails"
+                    }
+                },
+                { $unwind: "$receiverDetails" },
+
+                // STAGE 1: Group by File Name + Time (Minute precision for batching)
+                {
+                    $group: {
+                        _id: {
+                            originalName: "$docDetails.originalName",
+                            batchTime: { $dateToString: { format: "%Y-%m-%d %H:%M", date: "$sharedAt" } }
+                        },
+                        timestamp: { $first: "$sharedAt" },
+                        recipients: {
+                            $push: {
+                                shareId: "$_id",
+                                name: "$receiverDetails.name",
+                                img: "$receiverDetails.profilePicture",
+                                isSeen: "$isSeen",
+                                fileUrl: "$docDetails.pdfUrl"
+                            }
+                        }
+                    }
+                },
+
+                // STAGE 2: Group by File Name ONLY (To gather history)
+                {
+                    $group: {
+                        _id: "$_id.originalName", // Master Grouping Key
+                        lastSharedAt: { $max: "$timestamp" },
+                        totalBatches: { $sum: 1 },
+                        allBatches: {
+                            $push: {
+                                batchTime: "$timestamp",
+                                recipients: "$recipients",
+                                count: { $size: "$recipients" }
+                            }
+                        }
+                    }
+                },
+                { $sort: { lastSharedAt: -1 } }
+            ]);
+
+            // Format for Frontend
+            const formattedFiles = groupedFiles.map(group => ({
+                id: group._id, // Filename is the ID
+                isMasterFile: true, // Marker
+                fileName: group._id,
+                lastShared: group.lastSharedAt,
+                totalBatches: group.totalBatches,
+                totalStudents: group.allBatches.reduce((acc, batch) => acc + batch.count, 0),
+                batches: group.allBatches.sort((a, b) => new Date(b.batchTime) - new Date(a.batchTime))
+            }));
+
+            return res.json({ success: true, files: formattedFiles });
         }
-
-        const files = await sharedDocModel.find(query)
-            .populate(populateOptions)
-            .sort({ sharedAt: -1 }); // Newest First
-
-        // Data Cleaning: Kabhi kabhi document delete ho jata hai par share entry reh jati hai
-        // Hum filter kar lenge taaki null documents UI na todein
-        const cleanFiles = files.filter(f => f.document !== null).map(f => ({
-            id: f._id,
-            sharedAt: f.sharedAt,
-            isSeen: f.isSeen,
-            // Document Details
-            fileName: f.document.generatedName,
-            fileUrl: f.document.pdfUrl,
-            originalName: f.document.originalName,
-            // User Details (Dynamic based on tab)
-            user: type === 'received' ? f.sender : f.receiver 
-        }));
-
-        res.json({ success: true, files: cleanFiles });
 
     } catch (error) {
         console.error("Fetch Files Error:", error);
@@ -92,7 +153,7 @@ export const fetchWorkspaceFiles = async (req, res) => {
     }
 };
 
-// 3. Mark as Seen (Read Receipt)
+// 3. Mark as Seen
 export const markAsSeen = async (req, res) => {
     try {
         const { shareId } = req.body;

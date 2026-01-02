@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Download, Share2, Check, ArrowRight, AlertCircle, Send } from 'lucide-react';
+import { Download, Share2, Check, ArrowRight, Send, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -10,11 +10,17 @@ const ActionList = ({ students, onReset }) => {
   const [showShareConfirm, setShowShareConfirm] = useState(false); 
   const [isSharing, setIsSharing] = useState(false); 
 
+  // Calculate Success Count
+  const successStudents = students.filter(s => s.success !== false);
+  const successCount = successStudents.length;
+  
+  // Check if All are Shared (Logic: If sent count matches success count)
+  const isAllShared = successCount > 0 && sentIds.length >= successCount;
+
   // --- 1. Single Share Logic ---
   const handleShare = async (student) => { 
       try {
-        // Optimistic UI Update (Instant Feedback)
-        setSentIds(prev => [...prev, student.id]); 
+        setSentIds(prev => [...prev, student.id]); // Optimistic Update
 
         const { data } = await axios.post(`${API_URL}/document/share`, {
             documentId: student.docId,
@@ -22,8 +28,7 @@ const ActionList = ({ students, onReset }) => {
         }, { withCredentials: true });
 
         if (!data.success) {
-            // Revert on failure
-            setSentIds(prev => prev.filter(id => id !== student.id));
+            setSentIds(prev => prev.filter(id => id !== student.id)); // Revert
             alert("Share failed: " + data.message);
         }
       } catch (error) {
@@ -35,21 +40,26 @@ const ActionList = ({ students, onReset }) => {
   // --- 2. Bulk Share Logic ---
   const handleBulkShare = async () => { 
       setIsSharing(true);
-      const successfulStudents = students.filter(s => s.success !== false);
       
-      // Parallel Requests for speed
       try {
-          await Promise.all(successfulStudents.map(student => 
-             axios.post(`${API_URL}/document/share`, {
-                documentId: student.docId,
-                receiverId: student.id
-             }, { withCredentials: true })
-          ));
+          // Send requests in parallel
+          await Promise.all(successStudents.map(student => {
+             // Only send if not already sent
+             if (!sentIds.includes(student.id)) {
+                 return axios.post(`${API_URL}/document/share`, {
+                    documentId: student.docId,
+                    receiverId: student.id
+                 }, { withCredentials: true });
+             }
+             return Promise.resolve();
+          }));
           
-          setSentIds(successfulStudents.map(s => s.id));
+          // Mark all as sent locally
+          const allIds = successStudents.map(s => s.id);
+          setSentIds(allIds);
           setShowShareConfirm(false);
       } catch (error) {
-          alert("Some shares might have failed. Please try again.");
+          alert("Some shares might have failed. Please check connection.");
       } finally {
           setIsSharing(false);
       }
@@ -58,8 +68,6 @@ const ActionList = ({ students, onReset }) => {
   const handleDownload = (url) => { 
       if (url) window.open(url, '_blank'); 
   };
-
-  const successCount = students.filter(s => s.success !== false).length;
 
   return (
     <div className="h-full flex flex-col bg-slate-50/50 dark:bg-[#0a0a0a]">
@@ -152,9 +160,9 @@ const ActionList = ({ students, onReset }) => {
                     <button 
                       onClick={() => handleShare(student)} 
                       disabled={isSent || !isSuccess}
-                      className={`h-10 px-5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none ${
+                      className={`h-10 px-5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-sm active:scale-95 disabled:opacity-100 disabled:cursor-default disabled:shadow-none ${
                         isSent 
-                          ? 'bg-green-50 text-green-600 border border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30 cursor-default' 
+                          ? 'bg-green-50 text-green-600 border border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30' 
                           : 'bg-slate-900 text-white dark:bg-white dark:text-black hover:opacity-90'
                       }`}
                     >
@@ -167,15 +175,36 @@ const ActionList = ({ students, onReset }) => {
          })}
       </div>
 
-      {/* 3. FOOTER (Only Share All) */}
+      {/* 3. DYNAMIC FOOTER */}
       <div className="shrink-0 p-6 pt-4 bg-white dark:bg-[#111111] border-t border-slate-100 dark:border-slate-800 z-10">
-         <button 
-           onClick={() => setShowShareConfirm(true)}
-           disabled={successCount === 0}
-           className="w-full py-4 rounded-2xl bg-[#1AA3A3] text-white font-bold text-base flex items-center justify-center gap-2 hover:bg-[#158585] shadow-lg shadow-[#1AA3A3]/20 disabled:opacity-50 disabled:shadow-none active:scale-95 transition-all"
-         >
-            <Send size={18} /> Share With All
-         </button>
+         <AnimatePresence mode="wait">
+             {isAllShared ? (
+                 // STATE: ALL SHARED (Green Banner with Animation)
+                 <motion.div 
+                    key="success-banner"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    className="w-full py-4 rounded-2xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/30 text-green-700 dark:text-green-400 font-bold text-sm flex items-center justify-center gap-2 shadow-sm"
+                 >
+                    <CheckCircle2 size={18} /> All Documents Shared Successfully
+                 </motion.div>
+             ) : (
+                 // STATE: SHARE ALL BUTTON
+                 <motion.button 
+                   key="share-btn"
+                   initial={{ opacity: 0, y: 20 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   exit={{ opacity: 0, y: 20 }}
+                   onClick={() => setShowShareConfirm(true)}
+                   disabled={successCount === 0}
+                   className="w-full py-4 rounded-2xl bg-[#1AA3A3] text-white font-bold text-base flex items-center justify-center gap-2 hover:bg-[#158585] shadow-lg shadow-[#1AA3A3]/20 disabled:opacity-50 disabled:shadow-none active:scale-95 transition-all"
+                 >
+                    <Send size={18} /> Share With All
+                 </motion.button>
+             )}
+         </AnimatePresence>
       </div>
 
       {/* POPUP CONFIRMATION */}
@@ -187,6 +216,7 @@ const ActionList = ({ students, onReset }) => {
              >
                  <motion.div 
                     initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
+                    exit={{ scale: 0.9, y: 20 }}
                     className="bg-white dark:bg-[#151515] p-8 rounded-[32px] w-full max-w-sm shadow-2xl border border-slate-100 dark:border-slate-800 text-center relative overflow-hidden"
                  >
                      {/* Decor bg */}
@@ -198,7 +228,7 @@ const ActionList = ({ students, onReset }) => {
                      
                      <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Share Documents?</h3>
                      <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 leading-relaxed px-2">
-                       This will instantly add these files to the <strong>"Shared with Me"</strong> tab for {successCount} students.
+                       This will instantly add these files to the <strong>"Shared with Me"</strong> tab for {successCount - sentIds.length} remaining students.
                      </p>
                      
                      <div className="flex gap-3">

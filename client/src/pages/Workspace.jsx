@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Search, FolderOpen, Loader2, Home, ChevronRight, RefreshCw, Filter } from 'lucide-react';
+import { Search, FolderOpen, Loader2, Home, ChevronRight, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
@@ -8,6 +8,8 @@ import DashboardNavbar from '../components/layout/DashboardNavbar';
 import { useAuth } from '../context/AuthContext';
 import StatsBar from '../components/workspace/StatsBar';
 import FileCard from '../components/workspace/FileCard';
+import MasterFileCard from '../components/workspace/MasterFileCard';
+import BatchHistoryModal from '../components/workspace/BatchHistoryModal';
 import WorkspaceTabs from '../components/workspace/WorkspaceTabs';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -32,6 +34,7 @@ const Workspace = () => {
   // Data States
   const [stats, setStats] = useState(null);
   const [files, setFiles] = useState([]);
+  const [selectedMasterFile, setSelectedMasterFile] = useState(null); // State for Modal
   
   // Loading States
   const [loadingStats, setLoadingStats] = useState(true);
@@ -216,17 +219,37 @@ const Workspace = () => {
               >
                  <AnimatePresence mode='popLayout'>
                     {filteredFiles.map((file) => (
-                       <FileCard 
-                          key={file.id} 
-                          file={file} 
-                          type={activeTab} 
-                          onMarkSeen={handleMarkSeen}
-                       />
+                       file.isMasterFile ? (
+                           // SENT TAB: Show Master Card (Grouped)
+                           <MasterFileCard 
+                              key={file.id} 
+                              file={file} 
+                              onClick={() => setSelectedMasterFile(file)}
+                           />
+                       ) : (
+                           // RECEIVED TAB: Show Normal Card (Individual)
+                           <FileCard 
+                              key={file.id} 
+                              file={file} 
+                              type={activeTab} 
+                              onMarkSeen={handleMarkSeen}
+                           />
+                       )
                     ))}
                  </AnimatePresence>
               </motion.div>
            )}
         </div>
+
+        {/* BATCH HISTORY MODAL */}
+        <AnimatePresence>
+            {selectedMasterFile && (
+                <BatchHistoryModal 
+                    file={selectedMasterFile} 
+                    onClose={() => setSelectedMasterFile(null)} 
+                />
+            )}
+        </AnimatePresence>
 
       </div>
     </div>
