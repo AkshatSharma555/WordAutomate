@@ -3,7 +3,6 @@ import {
   microsoftLogin,
   logout,
   isAuthenticated,
-  devLogin
 } from "../controllers/authController.js";
 import userAuth from "../middleware/userAuth.js";
 
@@ -18,7 +17,5 @@ authRouter.post("/logout", logout);
 // Protected Route: Check if logged in (Requires Middleware)
 authRouter.get("/is-auth", userAuth, isAuthenticated);
 
-// DEV LOGIN ROUTE (Backdoor for Testing)
-authRouter.post('/dev-login', devLogin);
 
 export default authRouter;

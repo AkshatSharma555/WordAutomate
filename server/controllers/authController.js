@@ -165,32 +165,3 @@ export const isAuthenticated = async (req, res) => {
 };
 
 
-// 👇 DEV LOGIN (Backdoor for Testing)
-export const devLogin = async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    // Database mein user dhundo
-    const user = await userModel.findOne({ email });
-
-    if (!user) {
-      return res.json({ success: false, message: "Dev user not found" });
-    }
-
-    // Token banao (Bilkul real login jaisa)
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-
-    // Cookie set karo
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000
-    });
-
-    return res.json({ success: true, message: `Welcome back, ${user.name}!` });
-
-  } catch (error) {
-    return res.json({ success: false, message: error.message });
-  }
-};
