@@ -5,6 +5,7 @@ import DashboardNavbar from '../components/layout/DashboardNavbar';
 import { useAuth } from '../context/AuthContext';
 import Toast from '../components/common/Toast';
 import Breadcrumb from '../components/common/Breadcrumb';
+import { motion } from 'framer-motion';
 
 // Components
 import ExploreSidebar from '../components/explore/ExploreSidebar';
@@ -94,75 +95,95 @@ const Explore = () => {
   };
 
   return (
-    <div className="h-screen w-full bg-[#F3F2ED] dark:bg-[#050505] flex flex-col overflow-hidden">
+    <div className="h-screen w-full bg-[#F3F2ED] dark:bg-[#050505] flex flex-col overflow-hidden transition-colors duration-300 font-sans">
       
+      {/* Navbar Fixed Top */}
       <DashboardNavbar user={currentUser} onLogout={logout} />
       
+      {/* --- AMBIENT BACKGROUND EFFECTS --- */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+          <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] rounded-full blur-[120px] bg-[#F54A00] opacity-10 dark:opacity-[0.05] animate-pulse" style={{animationDuration: '8s'}} />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] rounded-full blur-[120px] bg-[#1AA3A3] opacity-10 dark:opacity-[0.05] animate-pulse" style={{animationDuration: '10s'}} />
+      </div>
+
       {toast.show && <Toast message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, show: false })} />}
       {selectedStudent && <StudentProfileModal student={selectedStudent} onClose={() => setSelectedStudent(null)} />}
 
-      <div className="flex flex-1 overflow-hidden pt-20 max-w-[1600px] mx-auto w-full">
+      {/* FIX: Changed 'pt-20' to 'pt-[60px]' or 'pt-16'. 
+          This aligns the content exactly below the navbar height (~60-64px) removing the gap.
+      */}
+      <div className="flex flex-1 overflow-hidden pt-[60px] max-w-[100%] mx-auto w-full relative z-10">
         
-        {/* DESKTOP SIDEBAR (FIXED) */}
-        <aside className="hidden md:block w-64 h-full border-r border-slate-200 dark:border-slate-800 bg-[#F3F2ED] dark:bg-[#050505] p-5 z-20">
-           <ExploreSidebar 
-             filters={filters} 
-             setFilters={setFilters} 
-             onClear={() => setFilters({ year: '', branch: '' })} 
-           />
+        {/* DESKTOP SIDEBAR */}
+        <aside className="hidden md:block w-72 h-full border-r border-slate-200/60 dark:border-white/5 bg-white/50 dark:bg-[#111]/40 backdrop-blur-md p-0 z-20">
+           {/* Sidebar Wrapper with internal padding if needed */}
+           <div className="h-full p-6">
+             <ExploreSidebar 
+               filters={filters} 
+               setFilters={setFilters} 
+               onClear={() => setFilters({ year: '', branch: '' })} 
+             />
+           </div>
         </aside>
 
         {/* RIGHT CONTENT AREA */}
         <main className="flex-1 flex flex-col min-w-0 h-full relative">
-           
-           {/* 👇 FIXED HEADER SECTION (Title + Search) */}
-           <div className="shrink-0 z-30 bg-[#F3F2ED]/95 dark:bg-[#050505]/95 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/50">
-              <div className="px-4 md:px-6 pt-5 pb-2">
+            
+            {/* FIXED HEADER SECTION */}
+            <div className="shrink-0 z-30 bg-white/70 dark:bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-slate-200/60 dark:border-white/5">
+              <div className="px-4 md:px-8 pt-6 pb-2">
                   <div className="mb-2">
                     <Breadcrumb items={[{ label: 'Dashboard', path: '/dashboard' }, { label: 'Explore', path: '/explore' }]} />
                   </div>
-                  <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-                    Explore GSTians
-                  </h1>
+                  <motion.h1 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-3xl font-black text-slate-900 dark:text-white tracking-tight"
+                  >
+                    Explore Community
+                  </motion.h1>
               </div>
 
-              <div className="px-4 md:px-6 pb-4">
+              <div className="px-4 md:px-8 pb-6">
                   <SearchHeader searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
 
                   {/* Mobile Filters Row */}
-                  <div className="md:hidden mt-3 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                  <div className="md:hidden mt-4 flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                       {years.map(y => (
                           <button key={y} onClick={() => toggleFilter('year', y)} 
-                            className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${filters.year === y ? 'bg-[#1AA3A3] text-white border-[#1AA3A3]' : 'bg-white dark:bg-[#1a1a1a] text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800'}`}>
+                            className={`whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold border transition-all ${filters.year === y ? 'bg-[#1AA3A3] text-white border-[#1AA3A3] shadow-md shadow-[#1AA3A3]/20' : 'bg-white dark:bg-white/5 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/10'}`}>
                             {y}
                           </button>
                       ))}
-                      <div className="w-px bg-slate-300 dark:bg-slate-700 mx-1 h-6 self-center"></div>
+                      <div className="w-px bg-slate-300 dark:bg-white/10 mx-1 h-6 self-center"></div>
                       {branches.map(b => (
                           <button key={b} onClick={() => toggleFilter('branch', b)} 
-                            className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${filters.branch === b ? 'bg-[#F54A00] text-white border-[#F54A00]' : 'bg-white dark:bg-[#1a1a1a] text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800'}`}>
+                            className={`whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold border transition-all ${filters.branch === b ? 'bg-[#F54A00] text-white border-[#F54A00] shadow-md shadow-[#F54A00]/20' : 'bg-white dark:bg-white/5 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/10'}`}>
                             {b}
                           </button>
                       ))}
                   </div>
               </div>
-           </div>
+            </div>
 
-           {/* 👇 SCROLLABLE CARD AREA (Lenis) */}
-           <div 
-             ref={scrollContainerRef} 
-             className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar pb-24"
-           >
-              {/* Extra wrapper for Lenis */}
+            {/* SCROLLABLE CARD AREA */}
+            <div 
+              ref={scrollContainerRef} 
+              className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar pb-32"
+            >
               <div>
                 {/* Result Count Badge */}
-                <div className="mb-4 flex items-center justify-between">
-                    <h2 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      {students.length} Found
+                <div className="mb-6 flex items-center justify-between">
+                    <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                      Showing {students.length} Students
                     </h2>
-                    <span className="hidden md:block text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 px-2 py-1 rounded-md">
-                      {filters.year || 'All Years'} • {filters.branch || 'All Branches'}
-                    </span>
+                    
+                    {(filters.year || filters.branch) && (
+                        <div className="hidden md:flex items-center gap-2">
+                            {filters.year && <span className="text-[10px] font-bold text-[#1AA3A3] bg-[#1AA3A3]/10 px-2 py-1 rounded-md border border-[#1AA3A3]/20">Year: {filters.year}</span>}
+                            {filters.branch && <span className="text-[10px] font-bold text-[#F54A00] bg-[#F54A00]/10 px-2 py-1 rounded-md border border-[#F54A00]/20">Branch: {filters.branch}</span>}
+                        </div>
+                    )}
                 </div>
 
                 <StudentGrid 
@@ -172,7 +193,7 @@ const Explore = () => {
                   onViewProfile={setSelectedStudent}
                 />
               </div>
-           </div>
+            </div>
         </main>
       </div>
     </div>

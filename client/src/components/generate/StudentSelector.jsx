@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Search, Users, CheckCircle2, Circle, AlertCircle } from 'lucide-react';
+import { Search, Users, CheckCircle2, Circle, AlertCircle, Wand2, User } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// 👇 'errorMessage' prop add kiya hai
 const StudentSelector = ({ students, selectedIds, processedIds, toggleSelection, toggleAll, onGenerate, btnState, errorMessage }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const LIMIT = 5;
@@ -11,8 +11,8 @@ const StudentSelector = ({ students, selectedIds, processedIds, toggleSelection,
   );
 
   const handleToggle = (id) => {
-     if (!selectedIds.includes(id) && selectedIds.length >= LIMIT) return; 
-     toggleSelection(id);
+      if (!selectedIds.includes(id) && selectedIds.length >= LIMIT) return; 
+      toggleSelection(id);
   };
 
   const handleSmartPick = () => {
@@ -27,132 +27,156 @@ const StudentSelector = ({ students, selectedIds, processedIds, toggleSelection,
   const isLimitReached = selectedIds.length >= LIMIT;
 
   return (
-    <div className="h-full flex flex-col relative bg-slate-50/50 dark:bg-[#0a0a0a]">
+    <div className="h-full flex flex-col relative bg-white/40 dark:bg-[#0a0a0a]/40">
       
-      {/* 1. HEADER */}
-      <div className="shrink-0 p-5 bg-white dark:bg-[#111111] z-10 border-b border-slate-100 dark:border-slate-800 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
-              <Users className="text-[#1AA3A3]" size={18} /> Select Targets
+      {/* 1. HEADER (Sticky) */}
+      <div className="shrink-0 p-5 bg-white/80 dark:bg-[#111111]/80 backdrop-blur-xl z-20 border-b border-slate-200/50 dark:border-white/5 sticky top-0">
+        <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+              <Users className="text-[#1AA3A3]" size={20} /> Select Targets
             </h2>
-            <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-md border transition-all ${
+            <div className={`text-[10px] uppercase tracking-widest font-black px-2.5 py-1 rounded-lg border transition-all ${
               isLimitReached 
-              ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/30' 
-              : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400'
+              ? 'bg-[#1AA3A3]/10 text-[#1AA3A3] border-[#1AA3A3]/20' 
+              : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-white/5 dark:border-white/10 dark:text-slate-400'
             }`}>
-              {selectedIds.length} / {LIMIT} Max
-            </span>
+              {selectedIds.length} / {LIMIT} MAX
+            </div>
         </div>
 
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+        <div className="flex gap-3">
+          <div className="relative flex-1 group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#1AA3A3] transition-colors" size={16} />
             <input 
               type="text" 
-              placeholder="Search..." 
+              placeholder="Search students..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-slate-100 dark:bg-[#1a1a1a] border-none rounded-lg text-xs font-medium focus:ring-2 focus:ring-[#1AA3A3]/20 text-slate-900 dark:text-white transition-all placeholder:text-slate-400"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-100 dark:bg-[#1a1a1a] border border-transparent focus:bg-white dark:focus:bg-black focus:border-[#1AA3A3]/30 rounded-xl text-sm font-bold text-slate-900 dark:text-white transition-all placeholder:text-slate-400 outline-none"
             />
           </div>
           <button 
             onClick={handleSmartPick}
-            className="px-4 py-2 rounded-lg text-xs font-bold bg-slate-900 dark:bg-white text-white dark:text-black hover:opacity-90 transition-opacity whitespace-nowrap shadow-md"
+            className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 dark:bg-white text-white dark:text-black hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center gap-2 whitespace-nowrap"
           >
-            Pick 5
+            <Wand2 size={14} /> Pick 5
           </button>
         </div>
       </div>
 
-      {/* 2. GRID LIST */}
-      <div className="flex-1 overflow-y-auto p-4 custom-scrollbar pb-32">
+      {/* 2. GRID LIST (Scrollable - 3 Columns Fix) */}
+      <div className="flex-1 overflow-y-auto p-4 custom-scrollbar pb-40">
         {filteredStudents.length === 0 ? (
-           <div className="flex flex-col items-center justify-center h-40 text-slate-400">
-              <span className="text-2xl mb-2 opacity-50">🔍</span>
-              <p className="text-sm font-medium">No students found.</p>
+           <div className="flex flex-col items-center justify-center h-64 text-slate-400 opacity-60">
+              <Users size={48} className="mb-4 text-slate-300 dark:text-slate-600" />
+              <p className="text-sm font-bold">No matching students found.</p>
            </div>
         ) : (
+           // Grid logic: Mobile (1), Tablet (2), Desktop (3)
            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+             <AnimatePresence mode='popLayout'>
              {filteredStudents.map((student) => {
                const isSelected = selectedIds.includes(student.id);
                const isProcessed = processedIds.includes(student.id);
                const isDisabled = !isSelected && isLimitReached;
 
                return (
-                 <div 
+                 <motion.div 
                    key={student.id}
+                   layout
+                   initial={{ opacity: 0, scale: 0.9 }}
+                   animate={{ opacity: 1, scale: 1 }}
+                   exit={{ opacity: 0, scale: 0.9 }}
                    onClick={() => !isDisabled && handleToggle(student.id)}
-                   className={`group relative p-3 rounded-xl border flex items-center gap-3 transition-all duration-200 cursor-pointer select-none overflow-hidden ${
+                   className={`group relative p-3 rounded-2xl border flex items-center gap-3 transition-all duration-200 cursor-pointer select-none overflow-hidden h-full ${
                      isSelected 
-                       ? 'bg-[#1AA3A3]/5 border-[#1AA3A3] shadow-md shadow-[#1AA3A3]/10 ring-1 ring-[#1AA3A3]' 
+                       ? 'bg-[#1AA3A3]/5 border-[#1AA3A3] shadow-md shadow-[#1AA3A3]/10' 
                        : isDisabled
-                          ? 'opacity-40 grayscale cursor-not-allowed bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800'
+                          ? 'opacity-50 grayscale cursor-not-allowed bg-slate-50 dark:bg-white/5 border-transparent'
                           : isProcessed
-                              ? 'opacity-60 bg-slate-50 dark:bg-[#151515] border-slate-200 dark:border-slate-800'
-                              : 'bg-white dark:bg-[#1e1e1e] border-slate-200 dark:border-slate-800 hover:border-[#1AA3A3]/40 hover:shadow-sm'
+                              ? 'opacity-60 bg-slate-50/50 dark:bg-white/5 border-slate-200 dark:border-white/5'
+                              : 'bg-white dark:bg-[#151515] border-slate-200 dark:border-white/5 hover:border-[#1AA3A3]/40 hover:shadow-sm'
                    }`}
                  >
-                   <div className="absolute top-2 right-2 text-[#1AA3A3]">
-                      {isSelected ? (
-                          <CheckCircle2 size={16} className="fill-[#1AA3A3] text-white" />
+                   {/* Avatar */}
+                   <div className={`size-10 rounded-full overflow-hidden shrink-0 border-2 transition-all p-0.5 ${
+                       isSelected ? 'border-[#1AA3A3]' : 'border-slate-100 dark:border-white/5'
+                   }`}>
+                      {student.img ? (
+                        <img src={student.img} alt={student.name} className="w-full h-full object-cover rounded-full bg-slate-100" />
                       ) : (
-                          <Circle size={16} className={`text-slate-300 dark:text-slate-700 ${!isDisabled && 'group-hover:text-[#1AA3A3]/50'}`} />
+                        <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-400">
+                            <User size={16} />
+                        </div>
                       )}
                    </div>
-
-                   <div className={`size-10 rounded-full overflow-hidden shrink-0 border transition-all ${
-                       isSelected ? 'border-[#1AA3A3]' : 'border-slate-100 dark:border-slate-700'
-                   }`}>
-                      <img src={student.img} alt={student.name} className="w-full h-full object-cover" />
-                   </div>
                    
-                   <div className="flex-1 min-w-0 pr-4">
-                      <h4 className={`text-xs font-bold truncate transition-colors ${
-                          isSelected ? 'text-[#1AA3A3]' : 'text-slate-700 dark:text-slate-200'
+                   {/* Info (Compact Layout) */}
+                   <div className="flex-1 min-w-0">
+                      <h4 className={`text-xs sm:text-sm font-bold leading-tight mb-1 transition-colors line-clamp-2 ${
+                          isSelected ? 'text-[#1AA3A3]' : 'text-slate-800 dark:text-white'
                       }`}>
                         {student.name}
                       </h4>
                       
-                      <div className="flex items-center gap-2 mt-0.5">
-                          <p className="text-[10px] text-slate-400 font-mono truncate">
+                      <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold font-mono tracking-tight bg-slate-100 dark:bg-white/5 px-1.5 py-0.5 rounded truncate max-w-[80px]">
                               {student.prn}
-                          </p>
+                          </span>
                           {isProcessed && (
-                              <span className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold leading-none">
+                              <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-black leading-none uppercase tracking-wide">
                                   Done
                               </span>
                           )}
                       </div>
                    </div>
-                 </div>
+
+                   {/* Checkbox */}
+                   <div className="shrink-0 text-[#1AA3A3]">
+                      {isSelected ? (
+                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                             <CheckCircle2 size={20} className="fill-[#1AA3A3] text-white" />
+                          </motion.div>
+                      ) : (
+                          <Circle size={20} className={`text-slate-300 dark:text-slate-700 ${!isDisabled && 'group-hover:text-[#1AA3A3]/50'}`} />
+                      )}
+                   </div>
+                 </motion.div>
                );
              })}
+             </AnimatePresence>
            </div>
         )}
       </div>
 
-      {/* 3. FLOATING GLASS DOCK */}
-      <div className="absolute bottom-0 left-0 right-0 p-6 z-20 pointer-events-none">
-         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#F3F2ED] via-[#F3F2ED]/90 to-transparent dark:from-[#050505] dark:via-[#050505]/90 dark:to-transparent" />
+      {/* 3. FLOATING ACTION DOCK */}
+      <div className="absolute bottom-0 left-0 right-0 p-6 z-30 pointer-events-none">
+         <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#F3F2ED] via-[#F3F2ED]/95 to-transparent dark:from-[#050505] dark:via-[#050505]/95 dark:to-transparent" />
          
-         <div className="relative pointer-events-auto">
-            {/* 👇 ERROR MESSAGE BOX (Only shows if errorMessage exists) */}
-            {errorMessage && (
-                <div className="mb-3 mx-1 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-center justify-center gap-2 animate-in slide-in-from-bottom-2 shadow-sm">
-                    <AlertCircle size={16} className="text-red-500 shrink-0" />
-                    <span className="text-xs font-bold text-red-600 dark:text-red-400">
-                        {errorMessage}
-                    </span>
-                </div>
-            )}
+         <div className="relative pointer-events-auto max-w-md mx-auto">
+            {/* Error Message */}
+            <AnimatePresence>
+                {errorMessage && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                        className="mb-3 mx-2 p-3 bg-red-500 text-white rounded-xl flex items-center justify-center gap-2 shadow-xl shadow-red-500/20"
+                    >
+                        <AlertCircle size={16} className="shrink-0 text-white" />
+                        <span className="text-xs font-bold">{errorMessage}</span>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
+            {/* Generate Button */}
             <button 
               onClick={onGenerate}
               disabled={btnState.disabled}
-              className={`w-full py-3.5 rounded-2xl font-bold text-base transition-all flex items-center justify-center gap-2 shadow-xl backdrop-blur-md border
+              className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-wide transition-all flex items-center justify-center gap-2.5 shadow-xl backdrop-blur-md border border-white/10
                 ${btnState.disabled 
-                  ? 'bg-slate-100/80 text-slate-400 cursor-not-allowed border-slate-200 dark:bg-slate-900/80 dark:text-slate-600 dark:border-slate-800'
-                  : 'bg-[#1AA3A3] text-white border-[#1AA3A3] hover:bg-[#158585] hover:scale-[1.01] active:scale-95 shadow-[#1AA3A3]/25'
+                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed dark:bg-white/10 dark:text-slate-500'
+                  : 'bg-gradient-to-r from-[#1AA3A3] to-teal-600 text-white hover:shadow-[#1AA3A3]/40 hover:scale-[1.02] active:scale-[0.98]'
                 }`}
             >
               {btnState.icon} {btnState.text}

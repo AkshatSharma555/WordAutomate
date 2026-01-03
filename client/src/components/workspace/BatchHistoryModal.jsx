@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, Calendar, ChevronDown, ChevronUp, Eye, Clock, CheckCircle2, User } from 'lucide-react';
+import { X, Calendar, ChevronDown, ChevronUp, Eye, Clock, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// --- SUB COMPONENT: Single Batch Accordion ---
 const BatchItem = ({ batch, index }) => {
     const [expanded, setExpanded] = useState(index === 0); // First one open by default
 
@@ -13,13 +14,12 @@ const BatchItem = ({ batch, index }) => {
 
     const seenCount = batch.recipients.filter(r => r.isSeen).length;
     const totalCount = batch.recipients.length;
-    const isAllSeen = seenCount === totalCount;
 
     return (
         <div className={`border rounded-xl overflow-hidden mb-3 transition-all duration-200 ${
             expanded 
-            ? 'border-slate-300 dark:border-slate-700 shadow-sm' 
-            : 'border-slate-200 dark:border-slate-800'
+            ? 'border-slate-300 dark:border-slate-700 shadow-sm bg-white dark:bg-[#151515]' 
+            : 'border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-[#111]'
         }`}>
             {/* Header Click to Expand */}
             <div 
@@ -27,7 +27,7 @@ const BatchItem = ({ batch, index }) => {
                 className={`p-4 flex items-center justify-between cursor-pointer transition-colors ${
                     expanded 
                     ? 'bg-slate-50 dark:bg-[#1a1a1a]' 
-                    : 'bg-white dark:bg-[#111] hover:bg-slate-50 dark:hover:bg-[#151515]'
+                    : 'hover:bg-slate-50 dark:hover:bg-[#151515]'
                 }`}
             >
                 <div className="flex items-center gap-4">
@@ -48,23 +48,22 @@ const BatchItem = ({ batch, index }) => {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    {/* Visual Progress Dots */}
-                    <div className="hidden sm:flex items-center gap-1.5 bg-white dark:bg-black px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
-                        <div className="flex space-x-1">
+                    {/* Visual Progress Dots (Preview) */}
+                    <div className="hidden sm:flex items-center gap-2 bg-white dark:bg-black px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                        <div className="flex -space-x-1">
                             {batch.recipients.slice(0, 5).map((r, i) => (
                                 <div 
                                     key={i} 
-                                    className={`size-2 rounded-full transition-colors ${
-                                        r.isSeen 
-                                        ? 'bg-[#1AA3A3]' // Seen Color
-                                        : 'bg-slate-300 dark:bg-slate-700' // Delivered Color
+                                    className={`size-2.5 rounded-full ring-2 ring-white dark:ring-black ${
+                                        r.isSeen ? 'bg-[#1AA3A3]' : 'bg-slate-300 dark:bg-slate-700'
                                     }`} 
                                     title={r.isSeen ? "Seen" : "Delivered"}
                                 />
                             ))}
-                            {totalCount > 5 && <span className="text-[10px] text-slate-400">+</span>}
+                            {totalCount > 5 && <span className="size-2.5 flex items-center justify-center text-[8px] text-slate-400 pl-1">+</span>}
                         </div>
-                        <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 ml-1.5 border-l border-slate-200 dark:border-slate-700 pl-2">
+                        <div className="h-3 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
+                        <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400">
                             {seenCount}/{totalCount}
                         </span>
                     </div>
@@ -108,7 +107,7 @@ const BatchItem = ({ batch, index }) => {
                                                 {recipient.name || "Unknown Student"}
                                             </p>
                                             <p className="text-[10px] text-slate-400 font-medium">
-                                                {recipient.isSeen ? "Viewed Document" : "Sent"}
+                                                {recipient.isSeen ? "Viewed Document" : "Delivered"}
                                             </p>
                                         </div>
                                     </div>
@@ -132,10 +131,8 @@ const BatchItem = ({ batch, index }) => {
     );
 };
 
+// --- MAIN MODAL COMPONENT ---
 const BatchHistoryModal = ({ file, onClose }) => {
-    // Determine overall stats
-    const overallRate = Math.round((file.totalSeen || 0 / file.totalStudents) * 100) || 0;
-
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div 
@@ -147,7 +144,7 @@ const BatchHistoryModal = ({ file, onClose }) => {
                 {/* 1. Header */}
                 <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between bg-white dark:bg-[#111]">
                     <div>
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white leading-tight">
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white leading-tight line-clamp-1">
                             {file.fileName}
                         </h2>
                         <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2">
@@ -168,9 +165,15 @@ const BatchHistoryModal = ({ file, onClose }) => {
 
                 {/* 2. Scrollable Content */}
                 <div className="p-4 overflow-y-auto custom-scrollbar flex-1 bg-[#F9FAFB] dark:bg-black/50">
-                    {file.batches.map((batch, index) => (
-                        <BatchItem key={index} batch={batch} index={index} />
-                    ))}
+                    {file.batches.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-40 text-slate-400">
+                            <p>No history found.</p>
+                        </div>
+                    ) : (
+                        file.batches.map((batch, index) => (
+                            <BatchItem key={index} batch={batch} index={index} />
+                        ))
+                    )}
                 </div>
 
                 {/* 3. Footer Stats */}
@@ -179,11 +182,6 @@ const BatchHistoryModal = ({ file, onClose }) => {
                         <User size={16} className="text-slate-400" />
                         Total Reached: <span className="text-slate-900 dark:text-white text-sm">{file.totalStudents}</span>
                     </div>
-                    
-                    {/* Optional: Add a 'View File' button if needed */}
-                    {/* <button className="text-xs font-bold text-[#1AA3A3] hover:underline">
-                        View Document
-                    </button> */}
                 </div>
             </motion.div>
         </div>

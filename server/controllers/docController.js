@@ -50,7 +50,8 @@ export const generateDocument = async (req, res) => {
 
         // 2. Temp File
         const timestamp = Date.now();
-        const sanitizedName = student.name.replace(/\s+/g, '_');
+        // Sanitized name only for temp file logic, not final logic
+        const sanitizedName = student.name.replace(/\s+/g, '_'); 
         const tempFileName = `temp_${timestamp}_${sanitizedName}.docx`;
         tempDocPath = path.resolve("uploads", tempFileName);
         fs.writeFileSync(tempDocPath, buf);
@@ -74,22 +75,39 @@ export const generateDocument = async (req, res) => {
             responseType: 'arraybuffer'
         });
 
-        const pdfFileName = `Doc_${sanitizedName}_${student.prn || 'NA'}.pdf`;
-        outputPdfPath = path.resolve("uploads", `output_${timestamp}_${sanitizedName}.pdf`);
+        // ---------------------------------------------------------
+        // 👇 UPDATED: Smart Renaming Logic Implementation 👇
+        // ---------------------------------------------------------
+        
+        // Helper function ko call karke naya naam banayenge
+        const pdfFileName = getSmartFileName(
+            req.file.originalname,  // Original File Name (e.g., ADL_Exp1_Akshat.docx)
+            user.name,              // Creator Name (e.g., Akshat Sharma)
+            user.prn || "",         // Creator PRN 
+            student.name,           // Receiver Name (e.g., Vedant Bhamare)
+            student.prn             // Receiver PRN
+        );
+
+        // Local Output Path (Temp storage ke liye unique ID use karte hain taaki clash na ho)
+        outputPdfPath = path.resolve("uploads", `output_${timestamp}_${student.id}.pdf`);
         fs.writeFileSync(outputPdfPath, pdfResponse.data);
+
+        // ---------------------------------------------------------
+        // 👆 UPDATE END 👆
+        // ---------------------------------------------------------
 
         // 5. Cloudinary Upload
         const uploadCloudResponse = await cloudinary.uploader.upload(outputPdfPath, {
             folder: "wordautomate_docs",
             resource_type: "raw", 
-            public_id: pdfFileName
+            public_id: pdfFileName // Yeh naam Cloudinary aur User ko dikhega
         });
 
         // 6. DB Save
         const newDoc = new documentModel({
             userId: req.userId,
             originalName: req.file.originalname,
-            generatedName: pdfFileName,
+            generatedName: pdfFileName, // Database mein bhi Smart Name save hoga
             pdfUrl: uploadCloudResponse.secure_url,
             studentName: student.name,
             studentPrn: student.prn || "N/A"
@@ -109,7 +127,7 @@ export const generateDocument = async (req, res) => {
             studentId: student.id,
             name: student.name,
             pdfUrl: uploadCloudResponse.secure_url,
-            docId: newDoc._id // Used for Sharing
+            docId: newDoc._id 
         });
 
     } catch (error) {
@@ -167,4 +185,49 @@ export const shareDocument = async (req, res) => {
         console.error("Share Error:", error);
         res.json({ success: false, message: error.message });
     }
+};
+
+// 3. SMART FILENAME GENERATION
+const getSmartFileName = (originalName, creatorName, creatorPrn, studentName, studentPrn) => {
+    // 1. Extension hatao (.docx)
+    let baseName = originalName.replace(/\.[^/.]+$/, ""); 
+    
+    // 2. Names & PRNs ko Clean karo (Remove spaces)
+    const cleanCreatorName = creatorName ? creatorName.replace(/\s+/g, '') : "";
+    const cleanCreatorFirst = creatorName ? creatorName.split(' ')[0] : "";
+    const cleanCreatorPrn = creatorPrn ? String(creatorPrn).trim() : "";
+
+    const cleanStudentName = studentName ? studentName.replace(/\s+/g, '') : "Student";
+    const cleanStudentPrn = studentPrn ? String(studentPrn).trim() : "";
+
+    let newName = baseName;
+
+    // 3. Logic: Replace Creator PRN -> Student PRN (Case Insensitive)
+    if (cleanCreatorPrn && new RegExp(cleanCreatorPrn, 'i').test(newName)) {
+        newName = newName.replace(new RegExp(cleanCreatorPrn, 'gi'), cleanStudentPrn);
+    }
+
+    // 4. Logic: Replace Creator Name -> Student Name
+    // Pehle Full Name check karo
+    if (cleanCreatorName && new RegExp(cleanCreatorName, 'i').test(newName)) {
+        newName = newName.replace(new RegExp(cleanCreatorName, 'gi'), cleanStudentName);
+    } 
+    // Agar Full Name nahi mila, toh First Name check karo
+    else if (cleanCreatorFirst && new RegExp(cleanCreatorFirst, 'i').test(newName)) {
+        newName = newName.replace(new RegExp(cleanCreatorFirst, 'gi'), cleanStudentName);
+    }
+
+    // 5. SAFETY CHECK (Fallback): 
+    // Agar replace hone ke baad bhi Student ka Naam usme nahi hai, toh end mein jod do
+    if (!newName.toLowerCase().includes(cleanStudentName.toLowerCase())) {
+        newName = `${newName}_${cleanStudentName}`;
+    }
+
+    // Agar Student ka PRN usme nahi hai, toh end mein jod do
+    if (cleanStudentPrn && !newName.includes(cleanStudentPrn)) {
+        newName = `${newName}_${cleanStudentPrn}`;
+    }
+
+    // 6. Final Cleanup (Remove messy underscores like "__") & Add .pdf
+    return newName.replace(/_+/g, '_') + ".pdf";
 };

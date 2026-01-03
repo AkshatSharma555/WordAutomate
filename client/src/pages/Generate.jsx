@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { AnimatePresence } from 'framer-motion';
-import { Wand2, Loader2, Users, UploadCloud, ArrowLeft, RefreshCcw } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Wand2, Loader2, Users, UploadCloud, ArrowLeft, Sparkles, AlertTriangle, LogIn } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import DashboardNavbar from '../components/layout/DashboardNavbar';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,6 +15,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const Generate = () => {
   const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
 
   const [file, setFile] = useState(null);
   const [friends, setFriends] = useState([]); 
@@ -27,8 +28,8 @@ const Generate = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isComplete, setIsComplete] = useState(false); 
   
-  // New State for Error Message
-  const [errorMsg, setErrorMsg] = useState("");
+  const [sessionError, setSessionError] = useState(false);
+  const [uiError, setUiError] = useState("");
 
   const [processStatus, setProcessStatus] = useState({
      current: 0, total: 0, name: "", img: "", timeLeft: 0
@@ -40,7 +41,6 @@ const Generate = () => {
       try {
         setLoadingFriends(true);
         const { data } = await axios.get(`${API_URL}/user/friends`, { withCredentials: true });
-        
         if (data.success) {
           const formattedFriends = data.friends.map(f => ({
             id: f._id, 
@@ -52,6 +52,7 @@ const Generate = () => {
           setFriends(formattedFriends);
         }
       } catch (error) {
+        if (error.response?.status === 401) setSessionError(true);
         setFriends([]);
       } finally {
         setLoadingFriends(false);
@@ -75,12 +76,12 @@ const Generate = () => {
     setSelectedIds(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
-    setErrorMsg(""); 
+    setUiError(""); 
   };
 
   const toggleAll = (idsToSelect) => {
      setSelectedIds(idsToSelect);
-     setErrorMsg("");
+     setUiError("");
   };
 
   const handleGenerate = async () => {
@@ -88,34 +89,26 @@ const Generate = () => {
 
     setIsGenerating(true);
     setGenerationResults([]); 
-    setErrorMsg(""); 
+    setUiError(""); 
+    setSessionError(false);
 
     const selectedStudents = friends.filter(s => selectedIds.includes(s.id));
     const total = selectedStudents.length;
     
     setProcessStatus({ 
-        current: 1, 
-        total: total, 
-        name: selectedStudents[0].name, 
-        img: selectedStudents[0].img, 
-        timeLeft: total * 4 
+        current: 1, total, name: selectedStudents[0].name, img: selectedStudents[0].img, timeLeft: total * 4 
     });
 
     const results = [];
     const successfulIds = [];
-    let hasSessionError = false;
+    let hasCriticalError = false;
 
     for (let i = 0; i < total; i++) {
-        if (hasSessionError) break;
-
+        if (hasCriticalError) break;
         const student = selectedStudents[i];
         
         setProcessStatus({
-            current: i + 1,
-            total: total,
-            name: student.name,
-            img: student.img, 
-            timeLeft: Math.max((total - i) * 4, 1)
+            current: i + 1, total, name: student.name, img: student.img, timeLeft: Math.max((total - i) * 4, 1)
         });
 
         try {
@@ -129,19 +122,13 @@ const Generate = () => {
             });
 
             if (data.success) {
-             results.push({ 
-                    ...student, 
-                    pdfUrl: data.pdfUrl, 
-                    docId: data.results?.docId || data.docId, 
-                    success: true 
-                });
+                results.push({ ...student, pdfUrl: data.pdfUrl, docId: data.results?.docId || data.docId, success: true });
                 successfulIds.push(student.id);
             }
         } catch (error) {
-            console.error("Gen loop error:", error);
             if (error.response && error.response.status === 401) {
-                setErrorMsg("Session expired. Please login again.");
-                hasSessionError = true;
+                setSessionError(true);
+                hasCriticalError = true;
                 results.push({ ...student, success: false, error: "Session Expired" });
             } else {
                 results.push({ ...student, success: false, error: "Failed" });
@@ -153,70 +140,107 @@ const Generate = () => {
     setProcessedIds(prev => [...prev, ...successfulIds]);
     setIsGenerating(false);
 
-    if (!hasSessionError) {
-        setIsComplete(true);
-    }
+    if (!hasCriticalError) setIsComplete(true);
   };
 
   const handleReset = () => {
     setIsComplete(false);
     setSelectedIds([]);
     setGenerationResults([]);
-    setErrorMsg("");
+    setUiError("");
   };
 
   const getButtonState = () => {
-     if (!file) return { disabled: true, text: "Upload Template First", icon: <UploadCloud size={20} /> };
-     if (selectedIds.length === 0) return { disabled: true, text: "Select Students", icon: <Users size={20} /> };
-     if (errorMsg) return { disabled: false, text: "Retry Generation", icon: <RefreshCcw size={20} /> };
-     return { disabled: false, text: `Process Batch (${selectedIds.length})`, icon: <Wand2 size={20} /> };
+     if (!file) return { disabled: true, text: "Upload Template First", icon: <UploadCloud size={18} /> };
+     if (selectedIds.length === 0) return { disabled: true, text: "Select Students", icon: <Users size={18} /> };
+     return { disabled: false, text: `Process Batch (${selectedIds.length})`, icon: <Wand2 size={18} /> };
   };
   const btnState = getButtonState();
 
+  const cardClass = "relative bg-white/70 dark:bg-[#111111]/60 backdrop-blur-xl rounded-[28px] border border-slate-200/60 dark:border-white/5 shadow-2xl shadow-slate-200/40 dark:shadow-black/40 overflow-hidden flex flex-col transition-all duration-300";
+
   return (
-    <div className="h-screen flex flex-col bg-[#F3F2ED] dark:bg-[#050505] overflow-hidden">
+    <div className="h-screen flex flex-col bg-[#F3F2ED] dark:bg-[#050505] overflow-hidden font-sans relative transition-colors duration-300">
       <DashboardNavbar user={currentUser} onLogout={logout} />
 
-      {/* Main Container - Pushed content up & Handles Responsiveness */}
-      <div className="flex-1 flex flex-col pt-20 pb-4 px-4 md:px-8 max-w-[1600px] mx-auto w-full h-full overflow-hidden">
+      {/* --- AMBIENT BACKGROUND (Fixed: Brighter Dark Mode + No Blink) --- */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+          {/* Top Left - Orange Glow */}
+          <div className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] max-w-[700px] max-h-[700px] rounded-full blur-[120px] bg-[#F54A00] opacity-20 dark:opacity-20" />
+          
+          {/* Bottom Right - Teal Glow */}
+          <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] max-w-[700px] max-h-[700px] rounded-full blur-[120px] bg-[#1AA3A3] opacity-20 dark:opacity-20" />
+      </div>
+
+      {/* === SESSION OVERLAY === */}
+      <AnimatePresence>
+        {sessionError && (
+            <motion.div 
+                initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+                animate={{ opacity: 1, backdropFilter: "blur(12px)" }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-white/60 dark:bg-black/80"
+            >
+                <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="bg-white dark:bg-[#151515] p-8 rounded-3xl shadow-2xl border border-red-100 dark:border-red-900/30 text-center max-w-md w-full mx-4">
+                    <div className="size-16 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500 animate-pulse">
+                        <AlertTriangle size={32} />
+                    </div>
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Session Expired</h2>
+                    <p className="text-slate-500 dark:text-slate-400 mb-6">Your session timed out. Please login again.</p>
+                    <button onClick={() => { logout(); navigate('/login'); }} className="w-full py-3.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-black font-bold flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform">
+                        <LogIn size={18} /> Login Again
+                    </button>
+                </motion.div>
+            </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* --- MAIN LAYOUT --- */}
+      <div className="relative z-10 flex-1 flex flex-col pt-20 pb-4 px-4 max-w-[1600px] mx-auto w-full h-full overflow-hidden">
         
-        {/* HEADER SECTION */}
-        <div className="shrink-0 mb-4 pt-2">
-           <Link to="/dashboard" className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 transition-colors mb-2">
-              <ArrowLeft size={14} /> Back to Dashboard
-           </Link>
-           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-               <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight leading-none">
-                 Document Workbench
-               </h1>
-               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-900 rounded-full border border-slate-200 dark:border-slate-800 self-start sm:self-auto">
-                  <div className="size-2 bg-[#1AA3A3] rounded-full animate-pulse shadow-[0_0_8px_#1AA3A3]" />
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Optimized for: <strong>5 Students/Batch</strong></span>
-               </div>
-           </div>
+        {/* HEADER */}
+        <div className="shrink-0 mb-4 flex items-center justify-between">
+            <div>
+                <Link to="/dashboard" className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-[#1AA3A3] transition-colors mb-1">
+                    <ArrowLeft size={12} /> Back
+                </Link>
+                <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                    Document Workbench <Sparkles className="text-[#1AA3A3]" size={18} />
+                </h1>
+            </div>
         </div>
 
-        {/* WORKSPACE GRID - Responsive Grid */}
-        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 overflow-hidden">
+        {/* WORKSPACE GRID */}
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 pb-2">
            
-           {/* LEFT: Uploader - Height adjusts on mobile, fixed ratio on desktop */}
-           <div className="lg:col-span-4 flex flex-col h-[300px] lg:h-full lg:min-h-0 bg-white dark:bg-[#111111] rounded-[24px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden order-1">
+           {/* LEFT: Uploader */}
+           <motion.div 
+             initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
+             className={`lg:col-span-3 h-full min-h-0 ${cardClass}`}
+           >
               <TemplateUploader file={file} setFile={setFile} />
-           </div>
+           </motion.div>
 
-           {/* RIGHT: Selector/Action - Height adjusts */}
-           <div className="lg:col-span-8 flex flex-col h-full min-h-0 bg-white dark:bg-[#111111] rounded-[24px] border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden order-2">
+           {/* RIGHT: Selector */}
+           <motion.div 
+             initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}
+             className={`lg:col-span-9 h-full min-h-0 relative ${cardClass}`}
+           >
               {!isComplete ? (
                  loadingFriends ? (
                    <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
-                     <Loader2 size={32} className="animate-spin mb-4 text-[#1AA3A3]" />
-                     <p className="text-sm font-medium">Loading network...</p>
+                     <Loader2 size={32} className="animate-spin mb-3 text-[#1AA3A3]" />
+                     <p className="text-xs font-bold uppercase tracking-wider">Loading Network...</p>
                    </div>
                  ) : friends.length === 0 ? (
-                   <div className="flex-1 flex flex-col items-center justify-center text-slate-400 text-center px-6">
-                      <div className="size-16 bg-slate-100 dark:bg-slate-900 rounded-full flex items-center justify-center mb-4"><Users size={24} /></div>
+                   <div className="flex-1 flex flex-col items-center justify-center text-center">
+                      <div className="size-16 bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
+                        <Users size={28} className="text-slate-400" />
+                      </div>
                       <h3 className="text-lg font-bold text-slate-700 dark:text-white">No Friends Found</h3>
-                      <a href="/explore" className="text-[#1AA3A3] font-bold hover:underline mt-2">Connect with friends</a>
+                      <Link to="/explore" className="mt-4 px-5 py-2 bg-[#1AA3A3] text-white rounded-lg font-bold text-sm hover:bg-[#158585]">
+                        Find Peers
+                      </Link>
                    </div>
                  ) : (
                    <StudentSelector 
@@ -227,22 +251,21 @@ const Generate = () => {
                      toggleAll={toggleAll}
                      onGenerate={handleGenerate}
                      btnState={btnState}
-                     errorMessage={errorMsg}
+                     errorMessage={uiError}
                    />
                  )
               ) : (
-                 <ActionList 
-                   students={generationResults} 
-                   onReset={handleReset}
-                 />
+                 <ActionList students={generationResults} onReset={handleReset} />
               )}
-
-              <AnimatePresence>
-                {isGenerating && <ProcessingOverlay status={processStatus} />}
-              </AnimatePresence>
-           </div>
+           </motion.div>
         </div>
       </div>
+
+      {/* --- PROCESSING OVERLAY --- */}
+      <AnimatePresence>
+        {isGenerating && <ProcessingOverlay status={processStatus} />}
+      </AnimatePresence>
+
     </div>
   );
 };

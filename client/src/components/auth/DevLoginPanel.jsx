@@ -11,18 +11,7 @@ const dummyUsers = [
   { name: "Rohit Sharma", email: "rohit.sharma@sies.edu.in", role: "BE - ECS" },
   { name: "Hardik Pandya", email: "hardik.pandya@sies.edu.in", role: "TE - EXTC" },
   { name: "Jasprit Bumrah", email: "jasprit.bumrah@sies.edu.in", role: "SE - ME" },
-  { name: "KL Rahul", email: "kl.rahul@sies.edu.in", role: "BE - CE" },
-
-  { name: "Shubman Gill", email: "shubman.gill@sies.edu.in", role: "FE - AIML" },
-  { name: "Suryakumar Yadav", email: "suryakumar.yadav@sies.edu.in", role: "SE - IT" },
-  { name: "Ravindra Jadeja", email: "ravindra.jadeja@sies.edu.in", role: "TE - IOT" },
-  { name: "Mohammed Shami", email: "mohammed.shami@sies.edu.in", role: "BE - EXTC" },
-  { name: "Rishabh Pant", email: "rishabh.pant@sies.edu.in", role: "SE - ECS" },
-  { name: "Kuldeep Yadav", email: "kuldeep.yadav@sies.edu.in", role: "TE - AIDS" },
-  { name: "Shreyas Iyer", email: "shreyas.iyer@sies.edu.in", role: "FE - CE" },
-  { name: "Axar Patel", email: "axar.patel@sies.edu.in", role: "BE - ME" },
-  { name: "Yuzvendra Chahal", email: "yuzvendra.chahal@sies.edu.in", role: "TE - IT" },
-  { name: "Bhuvneshwar Kumar", email: "bhuvneshwar.kumar@sies.edu.in", role: "SE - EXTC" }
+  { name: "KL Rahul", email: "kl.rahul@sies.edu.in", role: "BE - CE" }
 ];
 
 const DevLoginPanel = () => {

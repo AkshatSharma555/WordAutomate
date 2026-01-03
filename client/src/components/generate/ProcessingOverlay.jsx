@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom'; // 👈 IMPORT THIS
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, FileText, Clock, Sparkles, Zap, CheckCircle2 } from 'lucide-react';
+import { FileText, Clock, Cpu, Loader2, AlertTriangle } from 'lucide-react';
 import { gsap } from 'gsap';
 
-// --- PARTICLE EFFECT ---
+// --- 1. MAGIC PARTICLES ENGINE (Unchanged) ---
 const createParticleElement = (x, y, color) => {
   const el = document.createElement('div');
   el.className = 'particle';
@@ -18,180 +19,208 @@ const ParticleCard = ({ children, className = '', glowColor = "26, 163, 163" }) 
     if (!cardRef.current) return;
     const interval = setInterval(() => {
         const { width, height } = cardRef.current.getBoundingClientRect();
-        if(Math.random() > 0.7) {
+        if(Math.random() > 0.6) { 
             const particle = createParticleElement(Math.random() * width, Math.random() * height, glowColor);
             cardRef.current.appendChild(particle);
             
             gsap.fromTo(particle, 
                 { scale: 0, opacity: 0 }, 
-                { scale: 1, opacity: 1, duration: 0.3, ease: 'back.out(1.7)' }
+                { scale: 1, opacity: 1, duration: 0.4, ease: 'back.out(1.7)' }
             );
             gsap.to(particle, { 
-                y: -100, 
-                duration: 2 + Math.random(), 
-                ease: 'none', 
+                y: -80 - Math.random() * 50, 
+                duration: 1.5 + Math.random(), 
+                ease: 'power1.out', 
                 onComplete: () => particle.remove() 
             });
         }
-    }, 200); 
-
+    }, 150); 
     return () => clearInterval(interval);
   }, [glowColor]);
 
   return <div ref={cardRef} className={`${className} relative overflow-hidden`}>{children}</div>;
 };
 
-const PROCESS_STEPS = [
-    "Reading Template...",
-    "Injecting Data...",
-    "Formatting...",
-    "Converting to PDF...",
-    "Verifying...",
-    "Done!"
-];
+// --- 2. TECH LOADER ---
+const TechLoader = ({ percentage }) => {
+  return (
+    <div className="relative size-36 mx-auto mb-8 flex items-center justify-center">
+       {/* Outer Ring */}
+       <motion.div 
+          animate={{ rotate: 360 }}
+          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+          className="absolute inset-0 rounded-full border border-slate-200 dark:border-slate-800 border-t-[#1AA3A3] border-r-transparent opacity-50"
+       />
+       {/* Inner Ring */}
+       <motion.div 
+          animate={{ rotate: -360 }}
+          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+          className="absolute inset-2 rounded-full border-2 border-slate-100 dark:border-slate-800 border-b-[#1AA3A3] border-l-transparent"
+       />
 
+       {/* SVG Progress */}
+       <svg className="absolute inset-0 size-full -rotate-90 drop-shadow-[0_0_15px_rgba(26,163,163,0.4)]" viewBox="0 0 100 100">
+           <circle cx="50" cy="50" r="40" fill="none" stroke="#334155" strokeWidth="4" strokeOpacity="0.2" />
+           <motion.circle 
+              cx="50" cy="50" r="40" 
+              fill="none" 
+              stroke="#1AA3A3" 
+              strokeWidth="4" 
+              strokeLinecap="round" 
+              strokeDasharray="251.2" 
+              strokeDashoffset={251.2 - (251.2 * percentage) / 100} 
+              initial={{ strokeDashoffset: 251.2 }} 
+              animate={{ strokeDashoffset: 251.2 - (251.2 * percentage) / 100 }} 
+              transition={{ type: "spring", stiffness: 50, damping: 15 }} 
+           />
+       </svg>
+
+       <div className="flex flex-col items-center z-10">
+           <span className="text-4xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter">
+              {Math.round(percentage)}<span className="text-lg text-[#1AA3A3]">%</span>
+           </span>
+           <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mt-1">Processing</span>
+       </div>
+    </div>
+  );
+};
+
+// --- MAIN COMPONENT ---
 const ProcessingOverlay = ({ status }) => {
+  const [displayPercent, setDisplayPercent] = useState(0);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [displayTime, setDisplayTime] = useState(status.timeLeft || 0);
-  
-  // Calculate Percentage
-  // Using status.current/total gives rough percentage. 
-  // We can interpolate it for smoother visual if needed, but this is accurate to batch progress.
-  const percentage = Math.min(Math.round(((status.current - 1) / status.total) * 100) + 10, 100); 
 
+  // Smooth Percentage Logic
+  useEffect(() => {
+    let target = 0;
+    if (status.total > 0) target = Math.round(((status.current - 1) / status.total) * 100);
+    target = Math.max(target, 5); 
+    if (status.current >= status.total && status.total > 0) target = 100;
+
+    const interval = setInterval(() => {
+        setDisplayPercent(prev => {
+            if (prev >= target) return prev;
+            const jump = Math.ceil((target - prev) / 10); 
+            return prev + jump;
+        });
+    }, 50);
+    return () => clearInterval(interval);
+  }, [status.current, status.total]);
+
+  // Steps Logic
+  const STEPS = ["Initializing Engine...", "Parsing Document...", "Injecting Data...", "Formatting Layout...", "Finalizing PDF..."];
   useEffect(() => {
     const stepInterval = setInterval(() => {
-        setCurrentStepIndex((prev) => (prev + 1) % PROCESS_STEPS.length);
-    }, 1200);
+        setCurrentStepIndex(prev => (prev + 1) % STEPS.length);
+    }, 1500);
     return () => clearInterval(stepInterval);
   }, []);
 
-  // Reverse Timer Logic
+  // Timer Logic
   useEffect(() => {
-    // If the new status time is significantly different (e.g., new batch item started), sync it.
-    if (status.timeLeft > displayTime && status.timeLeft > 0) {
-        setDisplayTime(status.timeLeft);
+    if (status.timeLeft > 0) {
+        if (Math.abs(status.timeLeft - displayTime) > 5) setDisplayTime(status.timeLeft);
     }
-
-    const timerInterval = setInterval(() => {
-        setDisplayTime((prev) => {
-            if (prev <= 0) return 0;
-            return prev - 1;
-        });
+    const timer = setInterval(() => {
+        setDisplayTime(prev => (prev > 0 ? prev - 1 : 0));
     }, 1000);
+    return () => clearInterval(timer);
+  }, [status.timeLeft]);
 
-    return () => clearInterval(timerInterval);
-  }, [status.timeLeft]); // Depend on status updates to reset/sync
-
-  return (
+  // 🔴 PORTAL LOGIC: Renders this directly into body, bypassing parent CSS
+  return createPortal(
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 z-50 bg-white/90 dark:bg-[#050505]/95 backdrop-blur-xl flex flex-col items-center justify-center p-4"
+      className="fixed inset-0 z-[9999] bg-white/90 dark:bg-[#050505]/95 backdrop-blur-3xl flex flex-col items-center justify-center p-4 cursor-wait"
     >
       <ParticleCard 
-        className="w-full max-w-sm bg-white dark:bg-[#111111] border border-slate-200 dark:border-slate-800 rounded-[32px] shadow-2xl p-8 text-center relative"
+        className="w-full max-w-sm bg-white dark:bg-[#111111] border border-slate-200 dark:border-slate-800 rounded-[40px] shadow-2xl p-8 pb-6 text-center relative overflow-hidden ring-1 ring-white/10"
         glowColor="26, 163, 163"
       >
-         {/* Background Glow */}
-         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1 bg-gradient-to-r from-transparent via-[#1AA3A3] to-transparent opacity-50 blur-sm" />
-
-         {/* 1. CIRCULAR PROGRESS RING */}
-         <div className="relative size-24 mx-auto mb-6">
-            <svg className="size-full -rotate-90" viewBox="0 0 36 36">
-              {/* Background Track */}
-              <path className="text-slate-100 dark:text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="2.5" />
-              
-              {/* Animated Progress Path */}
-              <motion.path 
-                className="text-[#1AA3A3]"
-                strokeDasharray={`${percentage}, 100`}
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="3"
-                strokeLinecap="round"
-                initial={{ strokeDasharray: "0, 100" }}
-                animate={{ strokeDasharray: `${percentage}, 100` }}
-                transition={{ duration: 0.5, ease: "easeInOut" }}
-              />
-            </svg>
-            
-            {/* Center Content: Percentage or Loader */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-               <span className="text-xl font-bold text-slate-800 dark:text-white">
-                   {percentage}%
-               </span>
-            </div>
-         </div>
+         {/* Top Gradient Line */}
+         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-1.5 bg-gradient-to-r from-transparent via-[#1AA3A3] to-transparent opacity-80 blur-md rounded-b-full" />
+         
+         {/* 1. LOADER */}
+         <TechLoader percentage={displayPercent} />
 
          {/* 2. HEADER */}
-         <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center justify-center gap-2">
-            Generating... <Sparkles size={16} className="text-amber-400 animate-pulse fill-amber-400" />
-         </h3>
-
-         {/* 3. ACTIVE USER CARD */}
-         <div className="bg-slate-50 dark:bg-[#1a1a1a] rounded-2xl p-4 mb-6 border border-slate-100 dark:border-slate-800 relative overflow-hidden h-[110px] flex flex-col justify-center items-center shadow-inner">
-            
-            <AnimatePresence mode="wait">
-                <motion.div
-                    key={status.name} 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.3 }}
-                    className="flex flex-col items-center"
-                >
-                    <div className="size-12 rounded-full p-0.5 border-2 border-[#1AA3A3] mb-2 shadow-lg shadow-[#1AA3A3]/20">
-                        <img 
-                            src={status.img} 
-                            alt={status.name} 
-                            className="w-full h-full rounded-full object-cover bg-slate-200"
-                        />
-                    </div>
-                    <p className="text-lg font-bold text-slate-900 dark:text-white truncate max-w-[200px]">
-                        {status.name}
-                    </p>
-                </motion.div>
-            </AnimatePresence>
-
-            <div className="flex items-center justify-center gap-1.5 mt-1">
-                <Zap size={10} className="text-[#1AA3A3]" />
-                <AnimatePresence mode='wait'>
+         <div className="mb-8">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center justify-center gap-2 mb-2">
+               Generating Docs <Cpu size={18} className="text-[#1AA3A3] animate-pulse" />
+            </h3>
+            <div className="h-6 flex items-center justify-center overflow-hidden">
+                <AnimatePresence mode="wait">
                     <motion.p 
-                        key={currentStepIndex}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="text-[10px] font-mono text-[#1AA3A3] uppercase tracking-wide"
+                        key={currentStepIndex} 
+                        initial={{ y: 20, opacity: 0 }} 
+                        animate={{ y: 0, opacity: 1 }} 
+                        exit={{ y: -20, opacity: 0 }} 
+                        className="text-xs font-mono text-[#1AA3A3] uppercase tracking-widest font-bold"
                     >
-                        {PROCESS_STEPS[currentStepIndex]}
+                        {STEPS[currentStepIndex]}
                     </motion.p>
                 </AnimatePresence>
             </div>
          </div>
 
-         {/* 4. FOOTER STATS */}
-         <div className="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-[#1a1a1a] rounded-xl border border-slate-100 dark:border-slate-800">
-            <div className="flex flex-col items-start">
-               <span className="text-[10px] text-slate-400 font-bold uppercase">Batch Progress</span>
-               <span className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1">
-                  <FileText size={14} /> {status.current} <span className="text-slate-400">/</span> {status.total}
-               </span>
+         {/* 3. CURRENT ITEM CARD */}
+         <div className="bg-slate-50 dark:bg-[#1a1a1a] rounded-2xl p-3 mb-6 border border-slate-200 dark:border-slate-800 flex items-center gap-4 text-left shadow-sm relative overflow-hidden">
+            {/* Animated Gradient Background inside card */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 translate-x-[-100%] animate-shimmer" />
+            
+            <div className="relative shrink-0">
+                <div className="relative size-12 rounded-full p-0.5 border border-[#1AA3A3] bg-white dark:bg-black">
+                     <img 
+                        src={status.img || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
+                        alt={status.name} 
+                        className="w-full h-full rounded-full object-cover" 
+                     />
+                </div>
+                <div className="absolute -bottom-1 -right-1 bg-[#1AA3A3] border-2 border-white dark:border-[#151515] p-1 rounded-full shadow-sm">
+                    <Loader2 size={8} className="animate-spin text-white" />
+                </div>
             </div>
             
-            <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-2"></div>
+            <div className="flex-1 min-w-0 z-10">
+                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Processing</p>
+                <h4 className="text-sm font-bold text-slate-800 dark:text-white truncate">
+                    {status.name}
+                </h4>
+            </div>
+         </div>
 
-            <div className="flex flex-col items-end">
-               <span className="text-[10px] text-slate-400 font-bold uppercase">Est. Time</span>
-               <span className="text-sm font-bold text-orange-500 flex items-center gap-1 font-mono tabular-nums">
-                  <Clock size={14} /> {displayTime}s
+         {/* 4. STATS GRID */}
+         <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="bg-slate-50 dark:bg-[#1a1a1a] rounded-xl p-3 border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center">
+               <span className="text-[9px] text-slate-400 font-bold uppercase mb-1">Count</span>
+               <span className="text-base font-black text-slate-700 dark:text-slate-200 flex items-center gap-1">
+                  <FileText size={14} className="text-[#1AA3A3]" /> 
+                  {status.current} <span className="text-slate-400 font-medium">/ {status.total}</span>
+               </span>
+            </div>
+            <div className="bg-slate-50 dark:bg-[#1a1a1a] rounded-xl p-3 border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center">
+               <span className="text-[9px] text-slate-400 font-bold uppercase mb-1">Est. Time</span>
+               <span className="text-base font-black text-slate-700 dark:text-slate-200 flex items-center gap-1 font-mono tabular-nums">
+                  <Clock size={14} className="text-orange-500" /> 
+                  {displayTime}s
                </span>
             </div>
          </div>
+
+         {/* 5. WARNING MESSAGE (High Contrast) */}
+         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/30 rounded-xl p-3 flex items-center justify-center gap-2 animate-pulse">
+            <AlertTriangle size={16} className="text-amber-600 dark:text-amber-500" />
+            <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wide">
+               Do not close window
+            </p>
+         </div>
+
       </ParticleCard>
-    </motion.div>
+    </motion.div>,
+    document.body // 👈 Renders outside root div
   );
 };
 

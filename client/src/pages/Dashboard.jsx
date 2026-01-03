@@ -1,22 +1,32 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import DashboardNavbar from '../components/layout/DashboardNavbar';
+import MagicBento from '../components/ui/MagicBento';
 import { ShieldCheck, Loader2, Sparkles, Briefcase, Compass, Users } from 'lucide-react';
 
 const Dashboard = () => {
   const { currentUser, logout, loading } = useAuth();
   const navigate = useNavigate();
+  const [greeting, setGreeting] = useState('');
+
+  const isDark = document.documentElement.classList.contains('dark');
 
   useEffect(() => {
     if (!loading && !currentUser) navigate('/login');
+    
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting('Good Morning');
+    else if (hour < 18) setGreeting('Good Afternoon');
+    else setGreeting('Good Evening');
+
   }, [currentUser, loading, navigate]);
 
   const handleLogout = async () => { await logout(); navigate('/'); };
 
   const formatName = (name) => {
-    return name ? name.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : 'Student';
+    return name ? name.split(' ')[0] : 'Student';
   };
 
   if (loading || !currentUser) {
@@ -27,125 +37,94 @@ const Dashboard = () => {
     );
   }
 
-  // 👇 CARD DATA with ROUTES
-  const features = [
+  // --- UPDATED DESCRIPTIONS (More detailed) ---
+  const bentoItems = [
     {
-      id: 'generate',
-      title: 'Generate Document',
-      description: 'Create professional lab reports instantly.',
-      icon: <Sparkles size={28} />,
-      color: 'bg-[#1AA3A3]',
-      text: 'text-[#1AA3A3]',
-      bg: 'bg-[#1AA3A3]/10',
-      border: 'hover:border-[#1AA3A3]',
-      path: '/generate' // 👈 Path Added
-    },
-    {
-      id: 'workspace',
+      id: 'workspace', // Wide Card (Top Left)
       title: 'My Workspace',
-      description: 'Manage received PDFs and history.',
-      icon: <Briefcase size={28} />,
-      color: 'bg-[#F54A00]',
-      text: 'text-[#F54A00]',
-      bg: 'bg-[#F54A00]/10',
-      border: 'hover:border-[#F54A00]',
-      path: '/workspace'
+      description: 'Access your complete document history. View files received from friends and manage the reports you have generated.',
+      icon: Briefcase,
+      href: '/workspace',
     },
     {
-      id: 'explore',
-      title: 'Explore Students',
-      description: 'Find peers by Year and Branch.',
-      icon: <Compass size={28} />,
-      color: 'bg-blue-500',
-      text: 'text-blue-500',
-      bg: 'bg-blue-500/10',
-      border: 'hover:border-blue-500',
-      path: '/explore'
+      id: 'generate', // Tall Card (Right Side)
+      title: 'Generate Document',
+      description: 'Create professional lab reports instantly using our smart templates. Automate formatting, save time, and focus on learning.',
+      icon: Sparkles,
+      href: '/generate',
     },
     {
-      id: 'friends',
-      title: 'Friends & Network',
-      description: 'Build your circle for sharing.',
-      icon: <Users size={28} />,
-      color: 'bg-purple-500',
-      text: 'text-purple-500',
-      bg: 'bg-purple-500/10',
-      border: 'hover:border-purple-500',
-      path: '/friends'
+      id: 'explore', // Small Card
+      title: 'Explore',
+      description: 'Find peers across departments.',
+      icon: Compass,
+      href: '/explore',
+    },
+    {
+      id: 'friends', // Small Card
+      title: 'My Network',
+      description: 'Connect with your batchmates.',
+      icon: Users,
+      href: '/friends',
     }
   ];
 
   return (
-    <div className="min-h-screen w-full bg-[#F3F2ED] dark:bg-[#050505] relative transition-colors duration-300">
+    <div className="min-h-screen w-full bg-[#F3F2ED] dark:bg-[#050505] relative transition-colors duration-300 overflow-x-hidden font-sans">
       
       <DashboardNavbar user={currentUser} onLogout={handleLogout} />
 
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[-10%] left-[-10%] size-[500px] rounded-full blur-[120px] opacity-10 dark:opacity-5 bg-[#F54A00]" />
-          <div className="absolute bottom-[-10%] right-[-10%] size-[500px] rounded-full blur-[120px] opacity-10 dark:opacity-5 bg-[#1AA3A3]" />
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+          <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] rounded-full blur-[120px] 
+              bg-[#F54A00] opacity-10 dark:opacity-[0.08] mix-blend-multiply dark:mix-blend-normal animate-pulse" 
+              style={{animationDuration: '8s'}} 
+          />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] rounded-full blur-[120px] 
+              bg-[#1AA3A3] opacity-10 dark:opacity-[0.08] mix-blend-multiply dark:mix-blend-normal animate-pulse" 
+              style={{animationDuration: '10s'}} 
+          />
       </div>
 
       <div className="relative z-10 pt-24 px-4 md:px-8 max-w-6xl mx-auto pb-20">
         
         <motion.div 
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
+            transition={{ duration: 0.6 }}
+            className="mb-10"
         >
-            <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-bold tracking-wider text-[#F54A00] uppercase bg-[#F54A00]/10 px-2 py-0.5 rounded">
-                    Student Dashboard
+            <div className="flex items-center gap-2 mb-3">
+                <span className="text-[10px] font-bold tracking-widest text-[#F54A00] uppercase bg-[#F54A00]/10 px-3 py-1 rounded-full border border-[#F54A00]/20">
+                    Dashboard
                 </span>
                 {currentUser.isVerified && (
-                      <span className="flex items-center gap-1 text-xs font-semibold text-[#1AA3A3] bg-[#1AA3A3]/10 px-2 py-0.5 rounded">
-                        <ShieldCheck size={12} /> Verified
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-[#1AA3A3] bg-[#1AA3A3]/10 px-3 py-1 rounded-full border border-[#1AA3A3]/20">
+                        <ShieldCheck size={10} /> Verified
                     </span>
                 )}
             </div>
             
-            <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">
-                Welcome, {formatName(currentUser.name)}
+            <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight mb-3">
+                {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1AA3A3] to-[#F54A00]">{formatName(currentUser.name)}</span>
             </h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">
-                What would you like to do today?
+            <p className="text-slate-600 dark:text-slate-400 text-lg font-medium max-w-xl">
+                Ready to automate your assignments?
             </p>
         </motion.div>
 
-         {/* 🚀 GRID LAYOUT */}
-         <motion.div
-            initial={{ opacity: 0, y: 10 }}
+        <motion.div
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-6"
-         >
-            {features.map((feature) => (
-              <motion.div
-                key={feature.id}
-                whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => navigate(feature.path)} // 👈 Navigation Logic
-                className={`bg-white dark:bg-[#111111] p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl cursor-pointer group transition-all duration-300 ${feature.border}`}
-              >
-                <div className="flex items-start justify-between mb-6">
-                  <div className={`p-4 rounded-2xl ${feature.bg} ${feature.text} transition-colors group-hover:scale-110 duration-300`}>
-                    {feature.icon}
-                  </div>
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0 duration-300">
-                     <div className={`p-2 rounded-full ${feature.bg} ${feature.text}`}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-                     </div>
-                  </div>
-                </div>
-                
-                <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2 group-hover:text-primary transition-colors">
-                  {feature.title}
-                </h3>
-                <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
-                  {feature.description}
-                </p>
-              </motion.div>
-            ))}
-         </motion.div>
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="w-full"
+        >
+            <MagicBento 
+                items={bentoItems} 
+                isDark={isDark} 
+                glowColor="26, 163, 163" 
+            />
+        </motion.div>
+
       </div>
     </div>
   );
