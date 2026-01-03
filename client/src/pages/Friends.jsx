@@ -2,10 +2,9 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { AnimatePresence, motion } from 'framer-motion';
 import DashboardNavbar from '../components/layout/DashboardNavbar';
-import Breadcrumb from '../components/common/Breadcrumb';
 import { useAuth } from '../context/AuthContext';
 import Toast from '../components/common/Toast';
-import { Users, SearchSlash, Network, ArrowRight } from 'lucide-react';
+import { Users, Network, ArrowRight, ArrowLeft } from 'lucide-react'; // Added ArrowLeft
 import { Link } from 'react-router-dom';
 
 // Import Components
@@ -96,11 +95,18 @@ const Friends = () => {
         
         {/* ================= HEADER SECTION ================= */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10 pb-6 border-b border-slate-200/60 dark:border-white/5">
-           
-           {/* Left: Title & Info */}
-           <div className="flex-1">
+            
+            {/* Left: Title & Info */}
+            <div className="flex-1">
+              
+              {/* Back Link (Breadcrumb Replacement) */}
               <div className="mb-2">
-                 <Breadcrumb items={[{ label: 'Dashboard', path: '/dashboard' }, { label: 'Network', path: '/friends' }]} />
+                 <Link to="/dashboard" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-[#1AA3A3] dark:text-slate-400 dark:hover:text-[#1AA3A3] transition-colors group">
+                    <div className="p-1 rounded-full bg-slate-200 dark:bg-white/10 group-hover:bg-[#1AA3A3]/20 transition-colors">
+                      <ArrowLeft size={12} />
+                    </div> 
+                    Back to Dashboard
+                 </Link>
               </div>
               
               <div className="flex items-center gap-3 mb-2">
@@ -115,16 +121,16 @@ const Friends = () => {
               <p className="text-slate-500 dark:text-slate-400 text-sm font-medium max-w-lg leading-relaxed">
                 Manage your academic connections. Build your circle to easily share and receive documents.
               </p>
-           </div>
+            </div>
 
-           {/* Right: Tabs */}
-           <div className="w-full lg:w-auto">
+            {/* Right: Tabs */}
+            <div className="w-full lg:w-auto">
               <FriendsTabs 
                 activeTab={activeTab} 
                 setActiveTab={setActiveTab} 
                 counts={{ requests: requests.length, connections: friends.length }}
               />
-           </div>
+            </div>
         </div>
 
         {/* ================= CONTENT AREA ================= */}

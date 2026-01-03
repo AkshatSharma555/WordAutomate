@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Search, FolderOpen, Loader2, RefreshCw } from 'lucide-react';
+import { Search, FolderOpen, Loader2, RefreshCw, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
 import DashboardNavbar from '../components/layout/DashboardNavbar';
-import Breadcrumb from '../components/common/Breadcrumb';
 import { useAuth } from '../context/AuthContext';
 import StatsBar from '../components/workspace/StatsBar';
 import FileCard from '../components/workspace/FileCard';
@@ -107,8 +106,15 @@ const Workspace = () => {
         {/* 1. HEADER SECTION */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
             <div className="flex-1">
+                
+                {/* Back Link (Breadcrumb Replacement) */}
                 <div className="mb-2">
-                   <Breadcrumb items={[{ label: 'Dashboard', path: '/dashboard' }, { label: 'Workspace', path: '/workspace' }]} />
+                   <Link to="/dashboard" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-[#1AA3A3] dark:text-slate-400 dark:hover:text-[#1AA3A3] transition-colors group">
+                      <div className="p-1 rounded-full bg-slate-200 dark:bg-white/10 group-hover:bg-[#1AA3A3]/20 transition-colors">
+                        <ArrowLeft size={12} />
+                      </div> 
+                      Back to Dashboard
+                   </Link>
                 </div>
                 
                 <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-2">

@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Lenis from 'lenis'; 
+import { Link } from 'react-router-dom'; // Added Link
+import { ArrowLeft } from 'lucide-react'; // Added ArrowLeft
 import DashboardNavbar from '../components/layout/DashboardNavbar';
 import { useAuth } from '../context/AuthContext';
 import Toast from '../components/common/Toast';
-import Breadcrumb from '../components/common/Breadcrumb';
 import { motion } from 'framer-motion';
 
 // Components
@@ -109,14 +110,10 @@ const Explore = () => {
       {toast.show && <Toast message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, show: false })} />}
       {selectedStudent && <StudentProfileModal student={selectedStudent} onClose={() => setSelectedStudent(null)} />}
 
-      {/* FIX: Changed 'pt-20' to 'pt-[60px]' or 'pt-16'. 
-          This aligns the content exactly below the navbar height (~60-64px) removing the gap.
-      */}
       <div className="flex flex-1 overflow-hidden pt-[60px] max-w-[100%] mx-auto w-full relative z-10">
         
         {/* DESKTOP SIDEBAR */}
         <aside className="hidden md:block w-72 h-full border-r border-slate-200/60 dark:border-white/5 bg-white/50 dark:bg-[#111]/40 backdrop-blur-md p-0 z-20">
-           {/* Sidebar Wrapper with internal padding if needed */}
            <div className="h-full p-6">
              <ExploreSidebar 
                filters={filters} 
@@ -132,9 +129,17 @@ const Explore = () => {
             {/* FIXED HEADER SECTION */}
             <div className="shrink-0 z-30 bg-white/70 dark:bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-slate-200/60 dark:border-white/5">
               <div className="px-4 md:px-8 pt-6 pb-2">
+                  
+                  {/* Fixed Breadcrumb Path (UPDATED) */}
                   <div className="mb-2">
-                    <Breadcrumb items={[{ label: 'Dashboard', path: '/dashboard' }, { label: 'Explore', path: '/explore' }]} />
+                    <Link to="/dashboard" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-[#1AA3A3] dark:text-slate-400 dark:hover:text-[#1AA3A3] transition-colors group">
+                        <div className="p-1 rounded-full bg-slate-200 dark:bg-white/10 group-hover:bg-[#1AA3A3]/20 transition-colors">
+                            <ArrowLeft size={12} />
+                        </div> 
+                        Back to Dashboard
+                    </Link>
                   </div>
+
                   <motion.h1 
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
