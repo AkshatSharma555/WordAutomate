@@ -7,7 +7,6 @@ const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
-// 👇 UPDATED: Dynamic URL logic (Local + Production friendly)
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const BACKEND_URL = `${API_BASE_URL}/auth`;
 
@@ -16,16 +15,34 @@ export const AuthProvider = ({ children }) => {
     const [currentUser, setCurrentUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    // 🔥 HELPER: Apply theme globally
+    const applyTheme = (themePreference) => {
+        const root = window.document.documentElement;
+        // Remove both to be safe, then add the correct one
+        root.classList.remove('light', 'dark'); 
+        
+        if (themePreference === 'dark') {
+            root.classList.add('dark');
+        } else {
+            root.classList.add('light'); // Optional, but good for consistency
+        }
+        // Save to local storage as fallback
+        localStorage.setItem('theme', themePreference);
+    };
+
     const checkAuthStatus = async () => {
         try {
             const { data } = await axios.get(`${BACKEND_URL}/is-auth`, { withCredentials: true });
             if (data.success) {
                 setCurrentUser(data.userData);
+                // ⚡ Apply theme immediately on load
+                if (data.userData.theme) {
+                    applyTheme(data.userData.theme);
+                }
             } else {
                 setCurrentUser(null);
             }
         } catch (error) {
-            // Error handling remains silent in production logs for better UX
             setCurrentUser(null);
         } finally {
             setLoading(false);
@@ -49,6 +66,10 @@ export const AuthProvider = ({ children }) => {
 
             if (data.success) {
                 setCurrentUser(data.userData);
+                // ⚡ Apply theme immediately on login
+                if (data.userData.theme) {
+                    applyTheme(data.userData.theme);
+                }
                 return data.userData;
             } else {
                 throw new Error(data.message);
@@ -63,6 +84,9 @@ export const AuthProvider = ({ children }) => {
             await axios.post(`${BACKEND_URL}/logout`, {}, { withCredentials: true });
             await instance.logoutPopup();
             setCurrentUser(null);
+            // Optional: Reset theme on logout if desired, or keep user preference
+            localStorage.removeItem('theme');
+            document.documentElement.classList.remove('dark');
         } catch (error) {
             console.error("Logout Error:", error);
         }
@@ -74,7 +98,8 @@ export const AuthProvider = ({ children }) => {
             setCurrentUser,
             login, 
             logout, 
-            loading 
+            loading,
+            applyTheme // Exporting this if other components need to force update
         }}>
             {!loading && children}
         </AuthContext.Provider>

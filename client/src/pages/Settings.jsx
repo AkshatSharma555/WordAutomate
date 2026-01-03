@@ -1,32 +1,32 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext'; 
-import Breadcrumb from '../components/common/Breadcrumb';
 import DashboardNavbar from '../components/layout/DashboardNavbar';
 import ProfileSection from '../components/settings/ProfileSection';
 import PersonalInfoSection from '../components/settings/PersonalInfoSection'; 
 import ThemeToggle from '../components/common/ThemeToggle'; 
 import Toast from '../components/common/Toast'; 
-import { Loader2, Settings as SettingsIcon, Moon, Sun, Save } from 'lucide-react';
+import { Loader2, Settings as SettingsIcon, Moon, Sun, Save, ArrowLeft } from 'lucide-react';
 
-// 👇 DYNAMIC URL SETUP
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const USER_URL = `${API_BASE_URL}/user`;
 
 const Settings = () => {
-  const { currentUser, logout, loading, setCurrentUser } = useAuth();
+  const { currentUser, logout, loading, setCurrentUser, applyTheme } = useAuth(); // Destructure applyTheme
   const { theme, toggleTheme } = useTheme(); 
   const navigate = useNavigate();
 
+  // Database States
   const [dbTheme, setDbTheme] = useState('light');
   const [dbName, setDbName] = useState('');
   const [dbPrn, setDbPrn] = useState('');
   const [dbBranch, setDbBranch] = useState('');
   const [dbYear, setDbYear] = useState('');
   
+  // Local Form States
   const [name, setName] = useState("");
   const [nameError, setNameError] = useState("");
   const [prn, setPrn] = useState("");
@@ -42,20 +42,22 @@ const Settings = () => {
   const [isFetching, setIsFetching] = useState(true); 
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
 
+  // 1. FETCH DATA
   useEffect(() => {
     const fetchFreshUserData = async () => {
         try {
-            // ✅ Dynamic URL used here
             const { data } = await axios.get(`${USER_URL}/data`, { withCredentials: true });
             
             if (data.success && data.userData) {
                 const user = data.userData;
                 setCurrentUser(user);
+                
                 setDbTheme(user.theme || 'light');
                 setDbName(user.name || "");
                 setDbPrn(user.prn || "");
                 setDbBranch(user.branch || "");
                 setDbYear(user.year || "");
+                
                 setName(user.name || "");
                 setPrn(user.prn || "");
                 setBranch(user.branch || "");
@@ -66,7 +68,7 @@ const Settings = () => {
                 }
             }
         } catch (error) {
-            console.error("Failed to fetch fresh user data:", error);
+            console.error("Failed to fetch settings:", error);
         } finally {
             setIsFetching(false);
         }
@@ -76,14 +78,13 @@ const Settings = () => {
         if (!currentUser) navigate('/login');
         else fetchFreshUserData();
     }
-  }, [loading, navigate, setCurrentUser]); 
+  }, [loading, navigate, setCurrentUser]);
 
   const handleLogout = async () => { await logout(); navigate('/'); };
 
   const handleDeletePhoto = async () => {
     try {
         setIsUploading(true);
-        // ✅ Dynamic URL used here
         const { data } = await axios.delete(`${USER_URL}/delete-pic`, { withCredentials: true });
         if (data.success) {
             const freshUrl = `${data.profilePicture}?t=${Date.now()}`;
@@ -101,17 +102,18 @@ const Settings = () => {
     let somethingSaved = false;
     let hasError = false;
 
-    const isThemeChanged = theme !== dbTheme;
+    // Detect Changes (Compare against current context theme)
+    const isThemeChanged = theme !== dbTheme; 
     const isPhotoChanged = selectedImage !== null;
     const isPersonalInfoChanged = (name.trim() !== dbName.trim()) || (prn.trim() !== dbPrn.trim()) || (branch !== dbBranch) || (year !== dbYear);
 
     try {
+        // 1. Update Personal Info
         if (isPersonalInfoChanged) {
             if (nameError || prnError) {
                 setToast({ show: true, message: "Fix errors in Personal Info.", type: 'error' });
                 hasError = true;
             } else {
-                // ✅ Dynamic URL used here
                 const { data } = await axios.put(`${USER_URL}/update-personal-info`, 
                     { name: name.trim(), prn: prn.trim(), branch, year }, 
                     { withCredentials: true }
@@ -125,19 +127,25 @@ const Settings = () => {
             }
         }
         
+        // 2. Update Theme
         if (isThemeChanged && !hasError) {
-            // ✅ Dynamic URL used here
             const { data } = await axios.put(`${USER_URL}/update-theme`, { theme }, { withCredentials: true });
             if (data.success) { 
-                updates.theme = data.theme; setDbTheme(data.theme); somethingSaved = true; 
+                updates.theme = data.theme; 
+                setDbTheme(data.theme); 
+                
+                // Force apply theme via AuthContext helper just in case
+                if(applyTheme) applyTheme(data.theme);
+                
+                somethingSaved = true; 
             }
         }
         
+        // 3. Update Photo
         if (isPhotoChanged && !hasError) {
             const formData = new FormData();
             formData.append('image', selectedImage);
             formData.append('removeBg', removeBackground ? 'true' : 'false'); 
-            // ✅ Dynamic URL used here
             const { data } = await axios.post(`${USER_URL}/update-pic`, formData, { withCredentials: true, headers: { "Content-Type": "multipart/form-data" } });
             if (data.success) {
                 const freshUrl = `${data.profilePicture}?t=${Date.now()}`;
@@ -162,18 +170,38 @@ const Settings = () => {
   const hasChanges = selectedImage !== null || (theme !== dbTheme) || (name.trim() !== dbName.trim()) || (prn.trim() !== dbPrn.trim()) || (branch !== dbBranch) || (year !== dbYear);
 
   return (
-    <div className="min-h-screen w-full bg-[#F3F2ED] dark:bg-[#050505] relative overflow-hidden pb-32 transition-colors duration-300">
+    <div className="min-h-screen w-full bg-[#F3F2ED] dark:bg-[#050505] relative overflow-hidden pb-32 transition-colors duration-300 font-sans">
+      
+      {/* Background Ambience */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+          <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] rounded-full blur-[120px] bg-[#F54A00] opacity-5 dark:opacity-[0.02]" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] rounded-full blur-[120px] bg-[#1AA3A3] opacity-5 dark:opacity-[0.02]" />
+      </div>
+
       {toast.show && <Toast message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, show: false })} />}
       <DashboardNavbar user={currentUser} onLogout={handleLogout} />
 
       <div className="relative z-10 pt-24 px-4 md:px-10 max-w-3xl mx-auto">
-        <div className="mb-6"><Breadcrumb items={[{ label: 'Dashboard', path: '/dashboard' }, { label: 'Settings', path: '/settings' }]} /></div>
+        
+        {/* Breadcrumb Replacement: Simple Back Link */}
+        <div className="mb-6">
+           <Link to="/dashboard" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-[#1AA3A3] dark:text-slate-400 dark:hover:text-[#1AA3A3] transition-colors group">
+              <div className="p-1 rounded-full bg-slate-200 dark:bg-white/10 group-hover:bg-[#1AA3A3]/20 transition-colors">
+                <ArrowLeft size={12} />
+              </div> 
+              Back to Dashboard
+           </Link>
+        </div>
 
+        {/* Header */}
         <div className="flex items-center gap-3 mb-8">
-            <div className="size-10 rounded-xl bg-white dark:bg-[#111111] flex items-center justify-center shadow-sm text-slate-700 dark:text-slate-200 border border-transparent dark:border-slate-800"><SettingsIcon size={20} /></div>
+            <div className="size-10 rounded-xl bg-white dark:bg-[#111111] flex items-center justify-center shadow-sm text-slate-700 dark:text-slate-200 border border-transparent dark:border-slate-800">
+                <SettingsIcon size={20} />
+            </div>
             <h1 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white">Account Settings</h1>
         </div>
 
+        {/* Sections */}
         <ProfileSection 
             currentUser={currentUser} previewUrl={previewUrl} isCustomPhoto={currentUser?.profilePicture !== currentUser?.microsoftOriginalUrl}
             selectedImage={selectedImage} onImageSelect={(e) => {
@@ -189,6 +217,7 @@ const Settings = () => {
             branch={branch} setBranch={setBranch} year={year} setYear={setYear}
         />
 
+        {/* Theme Section */}
         <div className="mt-8 bg-white dark:bg-[#111111] rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200/60 dark:border-slate-800 transition-colors duration-300">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -206,6 +235,7 @@ const Settings = () => {
             </div>
         </div>
 
+        {/* Save Button */}
         <AnimatePresence>
             {hasChanges && (
                 <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }} className="fixed bottom-8 right-8 z-50">
