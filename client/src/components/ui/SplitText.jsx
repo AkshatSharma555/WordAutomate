@@ -9,19 +9,19 @@ const SplitText = ({
   text, 
   className = '', 
   delay = 0, 
-  duration = 0.8, // Thoda slow aur smooth
-  stagger = 0.04, // Har letter ke beech ka gap
-  startFrom = 'top 80%' // Kab start ho
+  duration = 1.0, // Thoda lamba duration for elegance
+  stagger = 0.02, // Fast stagger for fluidity (Lag fix)
+  startFrom = 'top 90%' 
 }) => {
   const containerRef = useRef(null);
 
-  // Text ko characters mein todna (Free Logic)
+  // Text Splitting Logic
   const splitContent = useMemo(() => {
     return text.split('').map((char, index) => (
       <span 
         key={index} 
-        className="inline-block will-change-transform opacity-0" // Default hidden
-        style={{ whiteSpace: 'pre' }} // Spaces preserve karne ke liye
+        className="inline-block will-change-transform opacity-0 translate-y-4" // Initial CSS State (prevents flash)
+        style={{ whiteSpace: 'pre' }} 
       >
         {char}
       </span>
@@ -34,32 +34,28 @@ const SplitText = ({
 
     const chars = el.querySelectorAll('span');
 
-    gsap.fromTo(chars, 
-      { 
-        y: 50, // Neeche se aayega
-        opacity: 0,
-        rotateX: -90 // Thoda 3D effect
-      },
-      {
+    // Kill any existing animations to prevent conflict
+    gsap.killTweensOf(chars);
+
+    // Smooth Animation Logic
+    gsap.to(chars, {
         y: 0,
         opacity: 1,
-        rotateX: 0,
         duration: duration,
         stagger: stagger,
-        ease: 'back.out(1.7)', // Bounce effect
-        delay: delay, // Agar wait karana ho
+        ease: 'power3.out', // Smoothest ease (Butter feel)
+        delay: delay,
         scrollTrigger: {
           trigger: el,
           start: startFrom,
           toggleActions: 'play none none reverse'
         }
-      }
-    );
+    });
 
-  }, { scope: containerRef, dependencies: [text, delay, duration] });
+  }, { scope: containerRef, dependencies: [text, delay] });
 
   return (
-    <div ref={containerRef} className={`${className} inline-block`}>
+    <div ref={containerRef} className={`${className} inline-block overflow-hidden`}>
       {splitContent}
     </div>
   );

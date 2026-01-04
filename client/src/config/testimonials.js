@@ -1,20 +1,27 @@
 export const testimonialsData = [
     {
-        name: "Akshat Sharma",
-        role: "Student, IT Dept", 
-        content: "This tool saved me 3 hours of manual work! Generating certificates for the entire class took just 2 minutes.",
-        image: "https://randomuser.me/api/portraits/men/32.jpg"
+        name: "Vedant Bhamare",
+        role: "Student, TE-IT",
+        content: "Finally, a solution for SIES GST students. The bulk processing feature is a game changer for submissions."
     },
     {
         name: "Siddhesh Bagde",
-        role: "Student, CE Dept",
-        content: "Super easy to use. I just uploaded my report template, filled the data, and got the PDF. No formatting issues!",
-        image: "https://randomuser.me/api/portraits/men/45.jpg"
+        role: "Student, TE-IT",
+        content: "Super easy to use. I just uploaded my report template, filled the data, and got the PDF. No formatting issues!"
     },
     {
-        name: "Vedant Bhamare",
-        role: "Student, EXTC Dept",
-        content: "Finally, a solution for SIES GST students. The bulk processing feature is a game changer for submissions.",
-        image: "https://randomuser.me/api/portraits/men/86.jpg"
+        name: "Parth Thakur",
+        role: "Student, TE-IT",
+        content: "Saved hours of manual work. The validation feature ensures I never make a mistake with PRN or names."
+    },
+    {
+        name: "Ajinkya Deshmukh",
+        role: "Student, TE-IT",
+        content: "The interface is so clean and the dark mode is perfect. Generating certificates for the event was a breeze."
+    },
+    {
+        name: "Ketan Kurhade",
+        role: "Student, TE-IT",
+        content: "Best tool for lab experiments. I love how I can withdraw requests if I send them to the wrong person."
     }
 ];

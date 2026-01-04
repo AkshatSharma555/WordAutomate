@@ -8,7 +8,7 @@ export const featuresData = [
     },
     {
         title: "Bulk Processing",
-        description: "Generate certificates or reports for the entire batch in one click.",
+        description: "Generate certificates or reports for multiple students in one click.",
         icon: Zap,
     },
     {

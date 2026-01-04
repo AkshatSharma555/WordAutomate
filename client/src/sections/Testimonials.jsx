@@ -1,39 +1,40 @@
 import React from 'react';
 import { testimonialsData } from '../config/testimonials';
 import SectionTitle from '../components/common/SectionTitle';
-import { Quote } from 'lucide-react';
+import { Quote, User } from 'lucide-react'; // Added User Icon
 import { cn } from '../utils/cn';
 
-// Data ko duplicate kar rahe hain taaki continuous scroll feel aaye (kam data hone par bhi)
-const scrollingTestimonials = [...testimonialsData, ...testimonialsData, ...testimonialsData, ...testimonialsData];
+// Data duplication for infinite scroll effect
+const scrollingTestimonials = [...testimonialsData, ...testimonialsData, ...testimonialsData];
 
 const Testimonials = ({ isDark }) => {
   
-  // Card Component (Internal)
+  // Card Component
   const TestimonialCard = ({ data }) => (
     <div className={cn(
-        "relative w-80 md:w-96 flex-shrink-0 p-6 rounded-2xl border transition-all duration-300 mx-4 select-none",
-        // Light Mode: White card, shadow
-        // Dark Mode: Glassy dark card
+        "relative w-80 md:w-96 flex-shrink-0 p-6 rounded-2xl border transition-all duration-300 mx-4 select-none group/card",
         isDark 
-            ? "bg-slate-900/40 border-white/10 hover:border-secondary/50 backdrop-blur-md" 
-            : "bg-white border-slate-200 shadow-lg shadow-slate-200/50 hover:border-secondary/50"
+            ? "bg-slate-900/40 border-white/10 hover:border-[#F54A00]/50 backdrop-blur-md" 
+            : "bg-white border-slate-200 shadow-lg shadow-slate-200/50 hover:border-[#F54A00]/50"
     )}>
-        {/* Top Section: Profile */}
+        {/* Top Section: Profile & Icon */}
         <div className="flex items-center gap-4 mb-4">
-            <img 
-                src={data.image} 
-                alt={data.name} 
-                className={cn(
-                    "size-12 rounded-full object-cover border-2",
-                    isDark ? "border-white/10" : "border-slate-100"
-                )}
-            />
+            
+            {/* 👇 ORANGE USER ICON (Replaced Image) */}
+            <div className={cn(
+                "size-12 rounded-full flex items-center justify-center border-2 transition-colors",
+                isDark 
+                    ? "bg-slate-800 border-white/5 text-[#F54A00]" 
+                    : "bg-[#F54A00]/10 border-slate-100 text-[#F54A00]"
+            )}>
+                <User size={24} />
+            </div>
+
             <div>
                 <h4 className={cn("font-bold text-lg", isDark ? "text-white" : "text-slate-900")}>
                     {data.name}
                 </h4>
-                <p className="text-primary text-xs font-semibold uppercase tracking-wide">
+                <p className={cn("text-xs font-semibold uppercase tracking-wide", isDark ? "text-slate-400" : "text-slate-500")}>
                     {data.role}
                 </p>
             </div>
@@ -47,8 +48,11 @@ const Testimonials = ({ isDark }) => {
             "{data.content}"
         </p>
 
-        {/* Decor: Quote Icon (Absolute Positioned for style) */}
-        <Quote className="absolute top-6 right-6 text-secondary/20 size-8" />
+        {/* Decor: Quote Icon */}
+        <Quote className={cn(
+            "absolute top-6 right-6 size-8 transition-colors",
+            isDark ? "text-white/10 group-hover/card:text-[#F54A00]/20" : "text-slate-200 group-hover/card:text-[#F54A00]/20"
+        )} />
     </div>
   );
 
@@ -62,10 +66,10 @@ const Testimonials = ({ isDark }) => {
             100% { transform: translateX(-50%); }
         }
         .animate-marquee {
-            animation: marquee 40s linear infinite;
+            animation: marquee 50s linear infinite;
         }
         .animate-marquee-reverse {
-            animation: marquee 40s linear infinite reverse;
+            animation: marquee 50s linear infinite reverse;
         }
         /* Hover pe rukne ka feature */
         .group:hover .animate-marquee,
@@ -74,17 +78,16 @@ const Testimonials = ({ isDark }) => {
         }
       `}</style>
 
-      <div className="container mx-auto px-6 mb-12">
+      <div className="container mx-auto px-6 mb-12 max-w-4xl text-center">
         <SectionTitle 
             isDark={isDark}
-            subtitle="Testimonials"
+            subtitle="Feedback"
             title="Loved by Students"
-            description="Don't just take our word for it. See what others are saying about LabAutomate."
+            description="See what your batchmates from TE-IT are saying about the automation."
         />
       </div>
 
       {/* --- MARQUEE CONTAINER --- */}
-      {/* Mask Image: Sides ko fade karne ke liye (Works on ANY background) */}
       <div className="relative w-full [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
         
         {/* Row 1: Left to Right */}

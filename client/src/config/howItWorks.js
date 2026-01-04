@@ -1,19 +1,24 @@
-import { UploadCloud, Edit3, Download } from "lucide-react";
+import { Users, UserPlus, FileUp, Share2 } from "lucide-react";
 
 export const howItWorksData = [
     {
-        title: "Upload Template",
-        description: "Upload your Word document (.docx) with {{placeholders}} where you want dynamic data.",
-        icon: UploadCloud,
+        title: "Find Peers",
+        description: "Go to Explore. Filter by Branch/Year to find your batchmates.",
+        icon: Users,
     },
     {
-        title: "Fill Details",
-        description: "Enter student details manually or upload an Excel sheet for bulk processing.",
-        icon: Edit3,
+        title: "Connect",
+        description: "Send friend requests. Build your network to enable sharing.",
+        icon: UserPlus,
     },
     {
-        title: "Download PDF",
-        description: "Get perfectly formatted PDFs instantly. Ready to print or email.",
-        icon: Download,
+        title: "Generate",
+        description: "Select friends & upload template. Auto-fill details in seconds.",
+        icon: FileUp,
+    },
+    {
+        title: "Share",
+        description: "Download PDFs or bulk share directly to friends' inboxes.",
+        icon: Share2,
     },
 ];

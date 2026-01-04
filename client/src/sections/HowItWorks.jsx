@@ -3,83 +3,85 @@ import { howItWorksData } from '../config/howItWorks';
 import SectionTitle from '../components/common/SectionTitle';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
-import { cn } from '../utils/cn'; // CN utility import
+import { cn } from '../utils/cn';
 
 const HowItWorks = ({ isDark }) => {
   return (
-    <section id="how-it-works" className="py-24 px-6 relative overflow-hidden">
-        {/* Background Glow - Only in Dark Mode */}
+    <section id="how-it-works" className="py-24 px-4 md:px-8 lg:px-12 relative overflow-hidden">
+        {/* Background Glow */}
         {isDark && (
-             <div className="absolute top-1/2 right-0 -translate-y-1/2 size-96 bg-primary/10 blur-[150px] -z-10" />
+             <div className="absolute top-1/2 right-0 -translate-y-1/2 size-96 bg-primary/10 blur-[150px] -z-10 pointer-events-none" />
         )}
 
-        <SectionTitle 
-            isDark={isDark}
-            subtitle="Process"
-            title="How it Works"
-            description="Just 3 simple steps to automate your documentation workflow."
-        />
+        <div className="max-w-4xl mx-auto text-center mb-16">
+            <SectionTitle 
+                isDark={isDark}
+                subtitle="Workflow"
+                title="How it Works"
+                description="From finding friends to generating documents, everything is connected."
+            />
+        </div>
 
-        <div className="flex flex-col md:flex-row items-center justify-center gap-8 mt-16 max-w-6xl mx-auto">
+        {/* 4-Step Layout (Compact Grid) */}
+        <div className="flex flex-col md:flex-row items-stretch justify-center gap-4 lg:gap-6 max-w-7xl mx-auto">
             {howItWorksData.map((step, index) => {
                 const Icon = step.icon;
                 return (
                     <React.Fragment key={index}>
                         {/* Step Card */}
                         <motion.div 
-                            initial={{ opacity: 0, y: 30 }}
+                            initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
-                            transition={{ delay: index * 0.2 }}
+                            transition={{ delay: index * 0.1 }}
                             className={cn(
-                                "relative flex-1 flex flex-col items-center text-center p-8 rounded-2xl border transition-all duration-300 group",
-                                // Conditional Styling
+                                "relative flex-1 flex flex-col items-center text-center p-6 rounded-xl border transition-all duration-300 group",
+                                // Dark/Light Mode Styling
                                 isDark 
-                                    ? "bg-slate-900/50 border-white/10 hover:bg-slate-900 hover:border-primary/50" 
-                                    : "bg-white border-slate-200 shadow-xl shadow-slate-200/50 hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/5"
+                                    ? "bg-slate-900/40 border-white/5 hover:bg-slate-900 hover:border-primary/40" 
+                                    : "bg-white border-slate-200 shadow-lg shadow-slate-200/40 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5"
                             )}
                         >
-                            {/* Icon Container: Teal (Primary) */}
+                            {/* Icon Container (Compact) */}
                             <div className={cn(
-                                "size-16 rounded-full flex items-center justify-center mb-6 transition-transform group-hover:scale-110",
+                                "size-12 rounded-full flex items-center justify-center mb-4 transition-transform group-hover:scale-110",
                                 isDark ? "bg-slate-800 text-primary" : "bg-primary/10 text-primary"
                             )}>
-                                <Icon size={32} />
+                                <Icon size={24} />
                             </div>
 
                             {/* Title */}
                             <h3 className={cn(
-                                "text-xl font-bold mb-2 transition-colors",
+                                "text-lg font-bold mb-2 transition-colors",
                                 isDark ? "text-white" : "text-slate-900"
                             )}>
                                 {step.title}
                             </h3>
 
-                            {/* Description */}
+                            {/* Description (Shortened) */}
                             <p className={cn(
-                                "text-sm leading-relaxed transition-colors",
+                                "text-sm leading-snug transition-colors",
                                 isDark ? "text-slate-400" : "text-slate-600"
                             )}>
                                 {step.description}
                             </p>
                             
-                            {/* Number Badge - Fixed Shadow Color & Theme */}
+                            {/* Number Badge (Small & Tucked) */}
                             <div className={cn(
-                                "absolute -top-4 -left-4 size-10 rounded-full flex items-center justify-center font-bold shadow-lg transition-transform group-hover:scale-110",
-                                // Teal Background with matching shadow
+                                "absolute -top-3 -left-3 size-8 rounded-full flex items-center justify-center text-sm font-bold shadow-md transition-transform group-hover:scale-110",
                                 "bg-primary text-white shadow-primary/30"
                             )}>
                                 {index + 1}
                             </div>
                         </motion.div>
 
-                        {/* Arrow (Desktop Only) - Theme Aware Colors */}
+                        {/* Arrow (Hidden on Mobile, Visible on Desktop) */}
                         {index !== howItWorksData.length - 1 && (
                             <div className={cn(
-                                "hidden md:block transition-colors",
-                                isDark ? "text-slate-700" : "text-slate-300"
+                                "hidden md:flex items-center justify-center transition-colors opacity-30",
+                                isDark ? "text-slate-600" : "text-slate-400"
                             )}>
-                                <ArrowRight size={32} />
+                                <ArrowRight size={20} />
                             </div>
                         )}
                     </React.Fragment>

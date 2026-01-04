@@ -1,83 +1,81 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { ChevronRight, Video, Check } from 'lucide-react';
 import Badge from '../components/common/Badge';
 import Button from '../components/common/Button';
-import SplitText from '../components/ui/SplitText';
 import { cn } from '../utils/cn';
 
 const HeroSection = ({ isDark }) => {
-  const features = ["No credit card required", "Secure College Login", "Instant PDF"];
+  const features = ["100% Free for Students", "Secure College Login", "Instant PDF"];
+
+  // Sabse simple aur clean animation config
+  const animationProps = {
+    initial: { opacity: 0, y: 15 }, // Movement kam kiya (20 -> 15) taaki pixel jump na lage
+    animate: { opacity: 1, y: 0 },
+    transition: { 
+      duration: 0.6,    // Duration thodi kam ki for snappiness
+      ease: "easeOut"   // No bounce, just smooth slide (Apple style)
+    }
+  };
 
   return (
-    <section className="relative flex flex-col items-center justify-center pt-32 pb-20 px-4 md:px-6 overflow-hidden min-h-[80vh]">
+    <section className="relative flex flex-col items-center justify-center pt-32 pb-20 px-4 md:px-6 overflow-hidden min-h-[90vh] w-full">
       
-      {/* Background Glow Effect */}
+      {/* Background Glow - Static Layer (No Animation on BG to save GPU) */}
       {isDark && (
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 size-[300px] md:size-[500px] bg-primary/20 blur-[100px] md:blur-[120px] rounded-full -z-10" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 size-[300px] md:size-[600px] bg-primary/20 blur-[80px] md:blur-[100px] rounded-full -z-10 pointer-events-none opacity-50" />
       )}
 
-      {/* 1. New Feature Badge (Yeh sabse pehle aayega - 0.5s duration) */}
-      <motion.div
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.2 }} // Thoda sa delay diya taaki Navbar ke saath load ho
+      {/* 1. Badge */}
+      <motion.div 
+        {...animationProps} 
+        transition={{ ...animationProps.transition, delay: 0.1 }}
+        className="relative z-10"
       >
         <Badge className={cn(
-            "mb-6 md:mb-8 flex items-center gap-2 cursor-pointer transition border",
-            "bg-secondary/10 text-secondary border-secondary/20 hover:bg-secondary/20"
+            "mb-6 md:mb-8 flex items-center gap-2 cursor-pointer transition-all border",
+            "bg-secondary/10 text-secondary border-secondary/20 hover:bg-secondary/20 hover:scale-105"
         )}>
           NEW
           <span className={cn(
-              "flex items-center gap-1",
-              isDark ? "text-white/80" : "text-slate-700"
+              "flex items-center gap-1 font-medium",
+              isDark ? "text-white/90" : "text-slate-700"
           )}>
             v2.0 is live now <ChevronRight size={14} />
           </span>
         </Badge>
       </motion.div>
 
-      {/* 2. Main Heading (TEXT ANIMATION - Ab Late Start Hoga) */}
-      <div className="text-center max-w-4xl mx-auto mb-6">
-        
-        {/* Line 1 */}
-        <div className={cn(
-            "text-4xl md:text-6xl lg:text-7xl font-bold leading-[1.1] md:leading-tight tracking-tight",
-            isDark ? "text-white" : "text-slate-900"
-        )}>
-          {/* 👇 DELAY CHANGE KIYA: 1.0 (Matlab Badge aur Navbar aane ke baad shuru hoga) */}
-          <SplitText 
-            text="Automate your lab" 
-            delay={1.0} 
-          />
-        </div>
+      {/* 2. Main Heading (Simple Fade Up - No SplitText) */}
+      <div className="text-center max-w-5xl mx-auto mb-6 relative z-10">
+        <motion.h1 
+          {...animationProps}
+          transition={{ ...animationProps.transition, delay: 0.2 }}
+          className={cn(
+              "text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] md:leading-tight tracking-tight",
+              isDark ? "text-white" : "text-slate-900"
+          )}
+        >
+          Automate your lab
+        </motion.h1>
 
-        {/* Line 2 */}
-        <div className="flex flex-wrap justify-center gap-2 md:gap-3 text-4xl md:text-6xl lg:text-7xl font-bold leading-[1.1] md:leading-tight tracking-tight mt-2">
-            
-            {/* Teal Text */}
-            <SplitText 
-                text="documentation" 
-                className="text-primary" 
-                delay={1.4} // Line 1 ke khatam hone ke baad
-            />
-            
-            {/* Orange Text */}
-            <SplitText 
-                text="work." 
-                className="text-secondary" 
-                delay={1.8} // Sabse end mein
-            />
-        </div>
+        <motion.div 
+          {...animationProps}
+          transition={{ ...animationProps.transition, delay: 0.3 }}
+          className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] md:leading-tight tracking-tight mt-1 md:mt-2"
+        >
+            <span className="text-primary">documentation</span>
+            <span className="text-secondary">work.</span>
+        </motion.div>
       </div>
 
-      {/* 3. Subtitle (Text ke baad aayega) */}
+      {/* 3. Subtitle */}
       <motion.p 
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 1.8, duration: 0.5 }} // Text khatam hone ke baad
+        {...animationProps}
+        transition={{ ...animationProps.transition, delay: 0.4 }}
         className={cn(
-            "text-base md:text-xl text-center max-w-xl md:max-w-2xl mt-4 px-4 leading-relaxed",
+            "text-base sm:text-lg md:text-xl text-center max-w-xl md:max-w-3xl mt-4 px-4 leading-relaxed relative z-10",
             isDark ? "text-slate-400" : "text-slate-600"
         )}
       >
@@ -86,40 +84,40 @@ const HeroSection = ({ isDark }) => {
 
       {/* 4. Action Buttons */}
       <motion.div 
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 1.8, duration: 0.5 }}
-        className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8 w-full sm:w-auto"
+        {...animationProps}
+        transition={{ ...animationProps.transition, delay: 0.5 }}
+        className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8 w-full sm:w-auto relative z-10"
       >
-        <Button className="h-12 px-8 text-base w-full sm:w-auto shadow-xl shadow-primary/20">
-          Start Automating
-        </Button>
+        <Link to="/login" className="w-full sm:w-auto">
+            <Button className="h-12 px-8 text-base w-full shadow-xl shadow-primary/25 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all">
+              Start Automating
+            </Button>
+        </Link>
         
         <Button 
             variant="outline" 
             className={cn(
-                "h-12 px-8 text-base gap-2 w-full sm:w-auto",
-                !isDark && "border-slate-300 text-slate-700 hover:bg-slate-100 hover:border-slate-400"
+                "h-12 px-8 text-base gap-2 w-full sm:w-auto backdrop-blur-sm",
+                !isDark && "border-slate-300 text-slate-700 hover:bg-slate-100/50"
             )}
         >
           <Video size={20} /> Watch Demo
         </Button>
       </motion.div>
 
-      {/* 5. Mini Features List */}
+      {/* 5. Features List */}
       <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 2.6 }}
-        className="flex flex-wrap justify-center gap-4 md:gap-6 mt-10 px-4"
+        {...animationProps}
+        transition={{ ...animationProps.transition, delay: 0.6 }}
+        className="flex flex-wrap justify-center gap-x-6 gap-y-3 mt-12 px-4 relative z-10"
       >
         {features.map((item, index) => (
           <div key={index} className={cn(
-              "flex items-center gap-2 text-sm font-medium",
+              "flex items-center gap-2 text-sm font-semibold tracking-wide",
               isDark ? "text-slate-400" : "text-slate-600"
           )}>
-            <div className="size-5 rounded-full bg-primary/10 flex items-center justify-center">
-                <Check size={12} className="text-primary" />
+            <div className="size-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Check size={12} strokeWidth={3} className="text-primary" />
             </div>
             {item}
           </div>

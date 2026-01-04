@@ -3,45 +3,38 @@ import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-// Register ScrollTrigger to keep everything in sync
 gsap.registerPlugin(ScrollTrigger);
 
 const SmoothScroll = ({ children }) => {
   const lenisRef = useRef(null);
 
   useEffect(() => {
-    // 1. Initialize Lenis with "Premium" Feel Settings
+    // 1. Optimized Lenis Settings (Performance Focus)
     const lenis = new Lenis({
-      duration: 1.5,             // Scroll duration (Higher = Smoother/Slower)
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // Exponential easing function
+      duration: 1.2,             // 1.5 se kam kiya taaki lag feel na ho
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       direction: 'vertical',
       gestureDirection: 'vertical',
       smooth: true,
-      mouseMultiplier: 1,        // Mouse sensitivity
-      smoothTouch: false,        // Mobile pe native scroll better lagta hai (Performance)
-      touchMultiplier: 2,
+      mouseMultiplier: 0.8,      // Thoda kam sensitivity for better control
+      smoothTouch: false,        // Mobile pe native scroll hi best hai
+      touchMultiplier: 1.5,
     });
 
     lenisRef.current = lenis;
 
-    // 2. Sync Lenis scroll with GSAP ScrollTrigger
-    // Har bar jab Lenis scroll kare, ScrollTrigger ko update karo
+    // 2. Sync ScrollTrigger
     lenis.on('scroll', ScrollTrigger.update);
 
-    // 3. Connect GSAP Ticker to Lenis (The "Heartbeat" Optimization)
-    // Isse React state updates aur scroll loop clash nahi karenge
-    const update = (time) => {
+    // 3. Optimized Ticker
+    // lagSmoothing(0) hata diya kyunki ye kabhi-kabhi jump maarta hai
+    gsap.ticker.add((time) => {
       lenis.raf(time * 1000);
-    };
-
-    gsap.ticker.add(update);
-
-    // Disable lag smoothing in GSAP to prevent jumpy scroll on heavy loads
-    gsap.ticker.lagSmoothing(0);
+    });
 
     // Cleanup
     return () => {
-      gsap.ticker.remove(update);
+      gsap.ticker.remove((time) => lenis.raf(time * 1000));
       lenis.destroy();
     };
   }, []);

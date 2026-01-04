@@ -4,35 +4,31 @@
 @tailwind components;
 @tailwind utilities;
 
-/* --- LENIS SMOOTH SCROLL SETTINGS (Essential) --- */
+/* --- LENIS SMOOTH SCROLL SETTINGS --- */
 html.lenis, html.lenis body {
   height: auto;
 }
-
 .lenis.lenis-smooth {
-  scroll-behavior: auto !important; /* Force disable native smooth scroll to avoid conflict */
+  scroll-behavior: auto !important;
 }
-
 .lenis.lenis-smooth [data-lenis-prevent] {
   overscroll-behavior: contain;
 }
-
 .lenis.lenis-stopped {
   overflow: hidden;
 }
-
 .lenis.lenis-scrolling iframe {
-  pointer-events: none; /* Performance boost during scroll */
+  pointer-events: none;
 }
 
 /* --- GLOBAL STYLES --- */
 body {
-    /* Default Base Colors (Will be overridden by Tailwind classes in components) */
     background-color: #F3F2ED; 
     color: #1e293b;
     font-family: 'Poppins', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* ⚠️ REMOVED GLOBAL TRANSITION: Yeh startup lag ka main karan tha */
 }
 
 /* Dark Mode Default Override */
@@ -41,79 +37,47 @@ body {
     color: #F3F2ED;
 }
 
-/* Smooth Transition for Dark Mode Switch */
-html, body {
-  @apply transition-colors duration-500 ease-in-out;
-}
-
 /* Custom Selection Color */
 ::selection {
-    background-color: #1AA3A3; /* SIES Teal */
+    background-color: #1AA3A3;
     color: white;
 }
-
 .dark ::selection {
-    background-color: #F54A00; /* Orange for Dark Mode */
+    background-color: #F54A00;
     color: white;
 }
 
-/* --- CUSTOM SCROLLBAR (Cross-Browser) --- */
-
-/* Width */
+/* --- CUSTOM SCROLLBAR --- */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
 }
-
-/* Track */
 ::-webkit-scrollbar-track {
     background: transparent;
 }
-
-/* Handle (Light Mode) */
 ::-webkit-scrollbar-thumb {
-    background: #cbd5e1; /* Slate-300 */
+    background: #cbd5e1;
     border-radius: 4px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8; /* Slate-400 */
+    background: #94a3b8;
 }
-
-/* Handle (Dark Mode) */
 .dark ::-webkit-scrollbar-track {
     background: #020617;
 }
-
 .dark ::-webkit-scrollbar-thumb {
     background: #333;
     border-radius: 4px;
 }
-
 .dark ::-webkit-scrollbar-thumb:hover {
     background: #555;
 }
 
-/* Utility for hiding scrollbar but keeping functionality */
-.no-scrollbar::-webkit-scrollbar {
-    display: none;
-}
-.no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
+/* Utility Classes */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Utility for Custom Scrollbar in Divs */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.5);
-  border-radius: 20px;
-}
-.dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(75, 85, 99, 0.5);
-}
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); border-radius: 20px; }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }
