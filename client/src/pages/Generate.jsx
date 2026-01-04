@@ -64,11 +64,11 @@ const Generate = () => {
   // Sorting Logic
   const sortedFriends = useMemo(() => {
      return [...friends].sort((a, b) => {
-        const isAProcessed = processedIds.includes(a.id);
-        const isBProcessed = processedIds.includes(b.id);
-        if (isAProcessed && !isBProcessed) return 1;
-        if (!isAProcessed && isBProcessed) return -1;
-        return 0;
+       const isAProcessed = processedIds.includes(a.id);
+       const isBProcessed = processedIds.includes(b.id);
+       if (isAProcessed && !isBProcessed) return 1;
+       if (!isAProcessed && isBProcessed) return -1;
+       return 0;
      });
   }, [friends, processedIds]);
 
@@ -163,12 +163,9 @@ const Generate = () => {
     <div className="h-screen flex flex-col bg-[#F3F2ED] dark:bg-[#050505] overflow-hidden font-sans relative transition-colors duration-300">
       <DashboardNavbar user={currentUser} onLogout={logout} />
 
-      {/* --- AMBIENT BACKGROUND (Fixed: Brighter Dark Mode + No Blink) --- */}
+      {/* --- AMBIENT BACKGROUND --- */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-          {/* Top Left - Orange Glow */}
           <div className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] max-w-[700px] max-h-[700px] rounded-full blur-[120px] bg-[#F54A00] opacity-20 dark:opacity-20" />
-          
-          {/* Bottom Right - Teal Glow */}
           <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] max-w-[700px] max-h-[700px] rounded-full blur-[120px] bg-[#1AA3A3] opacity-20 dark:opacity-20" />
       </div>
 
@@ -221,51 +218,53 @@ const Generate = () => {
               <TemplateUploader file={file} setFile={setFile} />
            </motion.div>
 
-           {/* RIGHT: Selector */}
+           {/* RIGHT: Selector / Processing / Results */}
            <motion.div 
              initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}
              className={`lg:col-span-9 h-full min-h-0 relative ${cardClass}`}
            >
-              {!isComplete ? (
-                 loadingFriends ? (
-                   <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
-                     <Loader2 size={32} className="animate-spin mb-3 text-[#1AA3A3]" />
-                     <p className="text-xs font-bold uppercase tracking-wider">Loading Network...</p>
-                   </div>
-                 ) : friends.length === 0 ? (
-                   <div className="flex-1 flex flex-col items-center justify-center text-center">
-                      <div className="size-16 bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
-                        <Users size={28} className="text-slate-400" />
-                      </div>
-                      <h3 className="text-lg font-bold text-slate-700 dark:text-white">No Friends Found</h3>
-                      <Link to="/explore" className="mt-4 px-5 py-2 bg-[#1AA3A3] text-white rounded-lg font-bold text-sm hover:bg-[#158585]">
-                        Find Peers
-                      </Link>
-                   </div>
-                 ) : (
-                   <StudentSelector 
-                     students={sortedFriends} 
-                     selectedIds={selectedIds}
-                     processedIds={processedIds}
-                     toggleSelection={toggleSelection}
-                     toggleAll={toggleAll}
-                     onGenerate={handleGenerate}
-                     btnState={btnState}
-                     errorMessage={uiError}
-                   />
-                 )
-              ) : (
-                 <ActionList students={generationResults} onReset={handleReset} />
-              )}
+             <AnimatePresence mode="wait">
+                {/* 🔥 VIEW 1: PROCESSING OVERLAY (Overlay ab card ke andar hi aayega) */}
+                {isGenerating ? (
+                    <ProcessingOverlay key="processing" status={processStatus} />
+                ) : isComplete ? (
+                    /* 🔥 VIEW 2: ACTION LIST (Results) */
+                    <ActionList key="results" students={generationResults} onReset={handleReset} />
+                ) : (
+                    /* 🔥 VIEW 3: SELECTOR (Default) */
+                    loadingFriends ? (
+                        <div key="loading" className="flex-1 flex flex-col items-center justify-center text-slate-400">
+                          <Loader2 size={32} className="animate-spin mb-3 text-[#1AA3A3]" />
+                          <p className="text-xs font-bold uppercase tracking-wider">Loading Network...</p>
+                        </div>
+                    ) : friends.length === 0 ? (
+                        <div key="empty" className="flex-1 flex flex-col items-center justify-center text-center">
+                          <div className="size-16 bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
+                            <Users size={28} className="text-slate-400" />
+                          </div>
+                          <h3 className="text-lg font-bold text-slate-700 dark:text-white">No Friends Found</h3>
+                          <Link to="/explore" className="mt-4 px-5 py-2 bg-[#1AA3A3] text-white rounded-lg font-bold text-sm hover:bg-[#158585]">
+                            Find Peers
+                          </Link>
+                        </div>
+                    ) : (
+                        <StudentSelector 
+                          key="selector"
+                          students={sortedFriends} 
+                          selectedIds={selectedIds}
+                          processedIds={processedIds}
+                          toggleSelection={toggleSelection}
+                          toggleAll={toggleAll}
+                          onGenerate={handleGenerate}
+                          btnState={btnState}
+                          errorMessage={uiError}
+                        />
+                    )
+                )}
+             </AnimatePresence>
            </motion.div>
         </div>
       </div>
-
-      {/* --- PROCESSING OVERLAY --- */}
-      <AnimatePresence>
-        {isGenerating && <ProcessingOverlay status={processStatus} />}
-      </AnimatePresence>
-
     </div>
   );
 };
