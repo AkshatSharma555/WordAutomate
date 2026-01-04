@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import Logo from '../components/common/Logo';
-import { ShieldCheck, Loader2, LockKeyhole, Building2, ArrowRight } from 'lucide-react';
+import ThreeDLogo from '../components/common/ThreeDLogo'; 
+import { Loader2, LockKeyhole, Building2, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Breadcrumb from '../components/common/Breadcrumb';
 
@@ -10,6 +10,9 @@ const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  
+  // State for Hover Effect on Logo
+  const [isLogoHovered, setIsLogoHovered] = useState(false);
 
   const handleMicrosoftLogin = async () => {
     try {
@@ -33,7 +36,7 @@ const Login = () => {
         <Breadcrumb items={[{ label: 'Authentication', path: '/login' }]} />
       </div>
 
-      {/* 2. AMBIENT BACKGROUND (Fixed & Static) */}
+      {/* 2. AMBIENT BACKGROUND */}
       <div className="absolute inset-0 pointer-events-none z-0">
          <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] max-w-[800px] max-h-[800px] rounded-full blur-[120px] bg-[#F54A00] opacity-10 dark:opacity-[0.05]" />
          <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] max-w-[800px] max-h-[800px] rounded-full blur-[120px] bg-[#1AA3A3] opacity-10 dark:opacity-[0.05]" />
@@ -50,12 +53,26 @@ const Login = () => {
           className="w-full max-w-[420px] bg-white/80 dark:bg-[#111111]/80 p-6 md:p-8 rounded-[32px] shadow-2xl shadow-slate-200/50 dark:shadow-black/50 border border-white/50 dark:border-white/10 backdrop-blur-xl flex flex-col items-center text-center mx-auto my-auto"
         >
           
-          {/* Logo Section */}
-          <div className="mb-6 transform hover:scale-105 transition-transform duration-300">
-            <Logo isDark={false} />
+          {/* LOGO SECTION (Icon + Text) */}
+          <div 
+            className="mb-8 flex items-center justify-center gap-3 cursor-pointer group select-none"
+            onMouseEnter={() => setIsLogoHovered(true)}
+            onMouseLeave={() => setIsLogoHovered(false)}
+          >
+            {/* 3D Icon Container (Fixed Size) */}
+            <div className="relative h-14 w-14 md:h-16 md:w-16 shrink-0">
+               <ThreeDLogo className="h-full w-full" isHovered={isLogoHovered} />
+               {/* Optional Glow */}
+               <div className="absolute inset-0 bg-[#F54A00] opacity-0 group-hover:opacity-20 transition-opacity duration-500 blur-xl rounded-full"></div>
+            </div>
+
+            {/* Brand Text */}
+            <span className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Word<span className="text-[#1AA3A3]">Automate</span>
+            </span>
           </div>
 
-          <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">
+          <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 mb-2 tracking-tight">
             Student Portal
           </h2>
 
@@ -115,14 +132,14 @@ const Login = () => {
                   <div className="text-[10px] md:text-[11px] text-slate-600 dark:text-slate-300 font-medium pt-0.5">
                       <p className="mb-0.5">Institute Access Only</p>
                       <p className="leading-snug">
-                        Only <span className="font-bold text-slate-900 dark:text-white bg-white dark:bg-white/10 px-1 py-0.5 rounded border border-slate-200 dark:border-white/10">@gst.sies.edu.in</span> (GSTian) accounts allowed.
+                        Only <span className="font-bold text-slate-900 dark:text-white bg-white dark:bg-white/10 px-1 py-0.5 rounded border border-slate-200 dark:border-white/10">@gst.sies.edu.in</span> accounts allowed.
                       </p>
                   </div>
               </div>
 
           </div>
 
-          {/* Footer (Centered now since only one link) */}
+          {/* Footer */}
           <div className="mt-6 pt-5 border-t border-slate-100 dark:border-white/5 w-full flex justify-center text-[10px] md:text-xs font-bold tracking-wide text-slate-400">
             <Link to="/" className="hover:text-[#F54A00] transition-colors flex items-center gap-1">
               Back to Home
