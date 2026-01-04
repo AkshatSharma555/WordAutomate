@@ -8,33 +8,45 @@ export const useTheme = () => useContext(ThemeContext);
 export const ThemeProvider = ({ children }) => {
     const { currentUser } = useAuth();
     
-    // Initial Load: LocalStorage > DB > Light
-    const [theme, setTheme] = useState(localStorage.getItem('appTheme') || 'light');
+    // 1. Initial Load: Check LocalStorage (Key: 'appTheme') -> Default 'light'
+    // Hum lazy initialization use kar rahe hain taaki render block na ho
+    const [theme, setTheme] = useState(() => {
+        return localStorage.getItem('appTheme') || 'light';
+    });
 
-    // 1. Sync with DB on Login (Initial only)
+    // 2. Sync with Database when User Logs In
+    // Jaise hi currentUser change hoga (Login pe), ye chalega aur state update karega.
     useEffect(() => {
         if (currentUser && currentUser.theme) {
-            setTheme(currentUser.theme);
+            // Agar DB theme aur current theme alag hain, tabhi update karo
+            if (currentUser.theme !== theme) {
+                setTheme(currentUser.theme);
+            }
         }
     }, [currentUser]);
 
-    // 2. Apply Class to HTML & Save to LocalStorage
+    // 3. Apply Class to HTML & Save to LocalStorage (The Main Effect)
+    // Jab bhi 'theme' state change hoga, ye DOM update karega.
     useEffect(() => {
         const root = window.document.documentElement;
-        if (theme === 'dark') {
-            root.classList.add('dark');
-        } else {
-            root.classList.remove('dark');
-        }
+        
+        // Clean cleanup
+        root.classList.remove('light', 'dark');
+        
+        // Add new class
+        root.classList.add(theme);
+        
+        // Save to LocalStorage with CONSISTENT key
         localStorage.setItem('appTheme', theme);
+        
     }, [theme]);
 
-    // 3. Toggle Function (Sirf State Change, No API)
+    // 4. Toggle Function
     const toggleTheme = () => {
         setTheme(prev => prev === 'light' ? 'dark' : 'light');
     };
 
-    // Helper to manually set theme (used for Discard changes)
+    // Helper to manually set theme (used for Discard changes in Settings)
     const setThemeManual = (newTheme) => {
         setTheme(newTheme);
     };

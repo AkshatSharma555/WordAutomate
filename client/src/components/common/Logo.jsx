@@ -1,18 +1,19 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { cn } from '../../utils/cn';
+// Agar 3D logo import karna ho toh yahan kar sakte ho, 
+// par abhi ke liye simple rakhte hain taaki error jaye.
 
-const Logo = ({ className }) => {
+const Logo = ({ isDark }) => {
   return (
-    <Link to="/" className={cn("flex items-center gap-2 group select-none", className)}>
-      <div className="size-8 rounded-lg bg-[#F54A00] flex items-center justify-center text-white font-bold text-lg shadow-md shadow-[#F54A00]/20 transition-transform group-hover:scale-105">
-        W
+    <div className="flex items-center gap-3 select-none">
+      {/* Simple Static Logo Icon */}
+      <div className="relative size-10 flex items-center justify-center bg-gradient-to-br from-[#FF6B00] to-[#F54A00] rounded-xl shadow-lg transform rotate-3">
+        <span className="text-white font-bold text-xl">W</span>
       </div>
-
-      <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white transition-colors duration-300">
-        WordAutomate
+      
+      <span className={`text-2xl font-bold tracking-tight ${isDark ? "text-white" : "text-slate-900"}`}>
+        Word<span className={isDark ? "text-[#F54A00]" : "text-[#1AA3A3]"}>Automate</span>
       </span>
-    </Link>
+    </div>
   );
 };
 

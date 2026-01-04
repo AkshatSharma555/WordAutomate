@@ -1,20 +1,64 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Clock, Cpu, CheckCircle, AlertTriangle } from 'lucide-react';
 import ProcessingLogo from './ProcessingLogo';
 
+// --- ✨ MAGIC BENTO PARTICLES (Fixed: Full Screen & Instant Load) ---
+const MagicParticles = React.memo(() => {
+  // 🔥 Count increased to 35 so screen feels full
+  const particles = useMemo(() => Array.from({ length: 35 }), []);
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 rounded-[28px]">
+      {particles.map((_, i) => {
+        const isTeal = i % 2 === 0;
+        const size = Math.random() * 6 + 3; // 3px to 9px
+        const leftPos = Math.random() * 100; // Random horizontal position
+        const duration = Math.random() * 15 + 10; // 10s to 25s (Slow Float)
+        
+        // 🔥 MAGIC TRICK: Negative delay implies animation started in the past.
+        // This ensures the screen is FULL of particles immediately on load.
+        const delay = -(Math.random() * 20); 
+
+        return (
+          <motion.div
+            key={i}
+            initial={{ top: "110%", opacity: 0 }} 
+            animate={{ 
+              top: "-20%", // Go way above to ensure they cross full screen
+              opacity: [0, 0.8, 0], // Increased opacity for better visibility
+            }}
+            transition={{ 
+              duration: duration, 
+              repeat: Infinity, 
+              delay: delay, 
+              ease: "linear" 
+            }}
+            className={`absolute rounded-full ${isTeal ? 'bg-[#1AA3A3]' : 'bg-[#F54A00]'}`}
+            style={{
+              left: `${leftPos}%`,
+              width: `${size}px`,
+              height: `${size}px`,
+              // Enhanced Glow
+              boxShadow: isTeal ? "0 0 12px #1AA3A3" : "0 0 12px #F54A00",
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+});
+
 // --- TECH LOADER ---
 const TechLoader = ({ percentage }) => {
   return (
-    // Fixed height container to prevent overlap with header/footer
-    <div className="relative w-full h-[180px] flex items-center justify-center">
+    <div className="relative w-full h-[190px] flex items-center justify-center">
        
-       {/* CONTAINER FOR ALIGNMENT */}
-       <div className="relative w-[180px] h-[180px] flex items-center justify-center">
+       <div className="relative w-[190px] h-[190px] flex items-center justify-center">
            
-           {/* 🔥 3D CORE - Sized smaller to not touch text */}
+           {/* 3D CORE */}
            <div className="absolute inset-0 z-0 flex items-center justify-center"> 
-               <div className="w-full h-full p-6"> {/* Padding pushes logo inside */}
+               <div className="w-full h-full p-7"> 
                    <ProcessingLogo />
                </div>
            </div>
@@ -35,15 +79,14 @@ const TechLoader = ({ percentage }) => {
                <motion.circle 
                   cx="50" cy="50" r="46" fill="none" stroke="#1AA3A3" strokeWidth="5" strokeLinecap="round" strokeDasharray="289" 
                   strokeDashoffset={289 - (289 * percentage) / 100} 
-                  // Linear animation matching the step-by-step state update
                   animate={{ strokeDashoffset: 289 - (289 * percentage) / 100 }} 
                   transition={{ duration: 0.1, ease: "linear" }} 
                />
            </svg>
 
-           {/* PERCENTAGE TEXT (Center) */}
+           {/* PERCENTAGE TEXT */}
            <div className="flex flex-col items-center justify-center z-20 pointer-events-none">
-               <div className="absolute size-20 bg-white/60 dark:bg-black/60 backdrop-blur-md rounded-full -z-10 shadow-sm border border-white/20" />
+               <div className="absolute size-24 bg-white/70 dark:bg-black/70 backdrop-blur-md rounded-full -z-10 shadow-sm border border-white/20" />
                <span className="text-4xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter drop-shadow-sm leading-none z-20">
                   {Math.floor(percentage)}<span className="text-[0.5em] text-[#1AA3A3]">%</span>
                </span>
@@ -55,7 +98,7 @@ const TechLoader = ({ percentage }) => {
 
 // --- SUCCESS SCREEN ---
 const SuccessScreen = () => (
-    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center justify-center text-center h-full font-sans">
+    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center justify-center text-center h-full font-sans relative z-10">
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200, delay: 0.1 }} className="size-20 rounded-full bg-green-500 flex items-center justify-center shadow-[0_0_40px_rgba(34,197,94,0.5)] mb-4">
             <CheckCircle size={40} className="text-white" strokeWidth={3} />
         </motion.div>
@@ -70,43 +113,27 @@ const ProcessingOverlay = ({ status }) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   
-  // 🔥 LOGIC CONFIG
-  const TIME_PER_ITEM = 4; // Seconds per item
-  const UPDATE_INTERVAL = 50; // ms per tick
+  const TIME_PER_ITEM = 4;
+  const UPDATE_INTERVAL = 50; 
   const totalDurationSec = status.total * TIME_PER_ITEM;
 
   useEffect(() => {
-    // 1. Calculate Target based on current item
-    // e.g. Item 1 of 5 = 20%. Item 2 of 5 = 40%.
-    // If backend says done (current > total), target is 100%.
     let targetPercent = 0;
     if (status.current > status.total) targetPercent = 100;
     else targetPercent = (status.current / status.total) * 100;
 
     const interval = setInterval(() => {
         setDisplayPercent(prev => {
-            // Case 1: Reached 100%? Trigger finish.
             if (prev >= 100) {
                 clearInterval(interval);
                 setTimeout(() => setIsCompleted(true), 500);
                 return 100;
             }
-
-            // Case 2: Animation reached current target (waiting for backend)
-            // e.g. at 20%, waiting for item 2 to start.
-            if (prev >= targetPercent && targetPercent < 100) {
-                return prev; 
-            }
-
-            // Case 3: Move forward
-            // Normal Speed: (20% gap) / (4000ms / 50ms ticks) = ~0.25 per tick
+            if (prev >= targetPercent && targetPercent < 100) return prev; 
+            
             let step = 0.25;
-
-            // Catch-up Speed: If we are far behind (backend jumped ahead), speed up.
             if (targetPercent - prev > 25) step = 1.0; 
             else if (targetPercent - prev > 10) step = 0.5;
-
-            // Final Fast Fill: If target is 100% (done), fill rapidly but smoothly
             if (targetPercent === 100) step = 1.5;
 
             return Math.min(prev + step, 100);
@@ -116,15 +143,12 @@ const ProcessingOverlay = ({ status }) => {
     return () => clearInterval(interval);
   }, [status.current, status.total]);
 
-  // Steps Text Loop
   const STEPS = ["Initializing...", "Spinning Core...", "Parsing Data...", "Formatting...", "Finalizing..."];
   useEffect(() => {
     const stepInterval = setInterval(() => setCurrentStepIndex(prev => (prev + 1) % STEPS.length), 1800);
     return () => clearInterval(stepInterval);
   }, []);
 
-  // 🔥 TIME SYNC: Directly mapped to percentage inverted
-  // 0% -> Full Time, 100% -> 0s
   const displayTime = Math.max(0, Math.ceil(totalDurationSec * (1 - displayPercent / 100)));
 
   return (
@@ -132,8 +156,12 @@ const ProcessingOverlay = ({ status }) => {
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="absolute inset-0 z-50 flex flex-col bg-[#F3F2ED]/95 dark:bg-[#050505]/95 backdrop-blur-xl overflow-hidden p-4 rounded-[28px] font-sans"
     >
+        {/* STATIC GRADIENTS */}
         <div className="absolute top-[-50%] left-[-50%] w-[100%] h-[100%] bg-[#1AA3A3] opacity-5 blur-[80px] rounded-full pointer-events-none" />
         <div className="absolute bottom-[-50%] right-[-50%] w-[100%] h-[100%] bg-[#F54A00] opacity-5 blur-[80px] rounded-full pointer-events-none" />
+
+        {/* 🔥 MAGIC PARTICLES (Ab screen bhari hui dikhegi) */}
+        <MagicParticles />
 
         <div className="relative z-10 w-full h-full max-w-sm mx-auto flex flex-col">
             <AnimatePresence mode="wait">

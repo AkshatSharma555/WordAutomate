@@ -1,105 +1,87 @@
 import jwt from "jsonwebtoken";
 import axios from "axios";
 import userModel from "../models/userModel.js";
-import cloudinary from "../config/cloudinary.js";
-import streamifier from "streamifier";
 
-const uploadFromBuffer = (buffer) => {
-  return new Promise((resolve, reject) => {
-    const cld_upload_stream = cloudinary.uploader.upload_stream(
-      {
-        folder: "wordautomate_users",
-      },
-      (error, result) => {
-        if (result) resolve(result);
-        else reject(error);
-      }
-    );
-    streamifier.createReadStream(buffer).pipe(cld_upload_stream);
-  });
+// Helper to check if email is allowed
+const isAllowedEmail = (email) => {
+    return email && email.endsWith("@gst.sies.edu.in");
 };
 
 export const microsoftLogin = async (req, res) => {
   try {
     const { accessToken } = req.body;
+    if (!accessToken) return res.status(400).json({ success: false, message: "No token" });
 
-    if (!accessToken) {
-      return res.status(400).json({ success: false, message: "No access token provided" });
-    }
-
+    // 1. Fetch User Info
     const msResponse = await axios.get("https://graph.microsoft.com/v1.0/me", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
     const { displayName, mail, userPrincipalName, id } = msResponse.data;
+    let userEmail = (mail || userPrincipalName || "").trim().toLowerCase();
 
-    let userEmail = mail || userPrincipalName;
-
-    if (userEmail) {
-      userEmail = userEmail.trim().toLowerCase();
+    if (!isAllowedEmail(userEmail)) {
+      return res.status(403).json({ success: false, message: "Only @gst.sies.edu.in allowed." });
     }
 
-    if (!userEmail || !userEmail.endsWith("@gst.sies.edu.in")) {
-      return res.status(403).json({
-        success: false,
-        message: "Access Denied. Only @gst.sies.edu.in emails allowed.",
-      });
-    }
-
-    let profilePicUrl = "";
-
+    // 2. Fetch MS Photo & Convert to Base64 (Har login pe try karenge)
+    let profilePicBase64 = "";
     try {
-      const photoResponse = await axios.get("https://graph.microsoft.com/v1.0/me/photo/$value", {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        responseType: "arraybuffer",
-      });
+        const photoResponse = await axios.get("https://graph.microsoft.com/v1.0/me/photo/$value", {
+            headers: { Authorization: `Bearer ${accessToken}` },
+            responseType: "arraybuffer",
+        });
 
-      if (photoResponse.data) {
-        const cloudRes = await uploadFromBuffer(photoResponse.data);
-        profilePicUrl = cloudRes.secure_url;
-      }
+        if (photoResponse.data) {
+            const base64Image = Buffer.from(photoResponse.data, 'binary').toString('base64');
+            profilePicBase64 = `data:image/jpeg;base64,${base64Image}`;
+        }
     } catch (err) {
-      // Photo fetch failure is handled silently for better UX
+        // Agar photo nahi hai (New user or user removed photo on MS), toh empty rahega
+        // Console log hata diya taaki logs clean rahein
     }
 
+    // 3. Database Operation
     let user = await userModel.findOne({ email: userEmail });
 
     if (!user) {
+      // --- NEW USER ---
       user = new userModel({
         name: displayName,
         email: userEmail,
         microsoftId: id,
         authProvider: "microsoft",
         isAccountVerified: true,
-        profilePicture: profilePicUrl,
-        microsoftOriginalUrl: profilePicUrl,
+        profilePicture: profilePicBase64, // Jo mila wo save karo (Empty or Image)
+        microsoftOriginalUrl: profilePicBase64,
         microsoftAccessToken: accessToken,
       });
       await user.save();
     } else {
+      // --- EXISTING USER (SYNC LOGIC) ---
       let isUpdated = false;
 
-      if (profilePicUrl) {
-        if (user.microsoftOriginalUrl !== profilePicUrl) {
-          user.microsoftOriginalUrl = profilePicUrl;
-          isUpdated = true;
-        }
-
-        if (!user.profilePicture) {
-          user.profilePicture = profilePicUrl;
-          isUpdated = true;
-        }
-      }
-
-      if (!user.microsoftId) {
-        user.microsoftId = id;
-        user.authProvider = "microsoft";
-        user.isAccountVerified = true;
-        isUpdated = true;
-      }
-
+      // Token update
       user.microsoftAccessToken = accessToken;
       isUpdated = true;
+
+      // Sync MS ID
+      if (!user.microsoftId) {
+          user.microsoftId = id;
+          user.authProvider = "microsoft";
+          isUpdated = true;
+      }
+
+      // 🔥 AUTO-UPDATE LOGIC:
+      // Agar Microsoft se photo aayi hai, toh DB update kar do (Latest photo sync).
+      // Agar Microsoft pe photo nahi mili (profilePicBase64 empty), toh purani rehne do (Fallback).
+      if (profilePicBase64) {
+          if (user.profilePicture !== profilePicBase64) {
+              user.profilePicture = profilePicBase64;
+              user.microsoftOriginalUrl = profilePicBase64;
+              isUpdated = true;
+          }
+      }
 
       if (isUpdated) await user.save();
     }
@@ -116,28 +98,23 @@ export const microsoftLogin = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Logged in successfully",
+      message: "Logged in",
       userData: {
         name: user.name,
         email: user.email,
         isVerified: user.isAccountVerified,
         profilePicture: user.profilePicture,
-        microsoftOriginalUrl: user.microsoftOriginalUrl,
       },
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Authentication failed" });
+    console.error("Login Error:", error);
+    return res.status(500).json({ success: false, message: "Auth failed" });
   }
 };
 
 export const logout = async (req, res) => {
   try {
-    res.clearCookie("token", {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      path: "/",
-    });
+    res.clearCookie("token", { httpOnly: true, secure: true, sameSite: "none", path: "/" });
     return res.json({ success: true, message: "Logged out" });
   } catch (error) {
     return res.json({ success: false, message: error.message });
@@ -148,7 +125,6 @@ export const isAuthenticated = async (req, res) => {
   try {
     const user = await userModel.findById(req.body.userId);
     if (!user) return res.json({ success: false });
-
     return res.json({
       success: true,
       userData: {
@@ -156,12 +132,9 @@ export const isAuthenticated = async (req, res) => {
         email: user.email,
         isVerified: user.isAccountVerified,
         profilePicture: user.profilePicture,
-        microsoftOriginalUrl: user.microsoftOriginalUrl,
       },
     });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
 };
-
-
