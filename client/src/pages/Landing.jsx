@@ -49,6 +49,8 @@ const Landing = () => {
         </AnimatePresence>
 
         <div className="relative z-10 flex flex-col min-h-screen">
+          
+          {/* Navbar now handles the 3D Logo internally */}
           <Navbar isDark={isCreativeMode} />
 
           <main className="flex-grow [&>section]:bg-transparent [&>section]:relative">

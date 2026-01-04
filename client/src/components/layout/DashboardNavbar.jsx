@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Settings, LogOut, ChevronDown, Sparkles } from 'lucide-react';
+import { Settings, LogOut, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Logo from '../common/Logo';
+import ThreeDLogo from '../common/ThreeDLogo'; // ✅ New 3D Logo Import
 
 const DashboardNavbar = ({ user, onLogout }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isLogoHovered, setIsLogoHovered] = useState(false); // ✨ State for 3D interaction
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
@@ -37,12 +38,27 @@ const DashboardNavbar = ({ user, onLogout }) => {
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="fixed top-0 left-0 right-0 z-50 w-full bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-slate-200/60 dark:border-white/10 px-6 md:px-10 py-3 shadow-sm flex items-center justify-between transition-all duration-300"
+        className="fixed top-0 left-0 right-0 z-50 w-full bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-slate-200/60 dark:border-white/10 px-6 md:px-10 py-2 shadow-sm flex items-center justify-between transition-all duration-300"
     >
       
-      {/* 1. LEFT: Logo Area */}
-      <div className="flex items-center gap-4">
-        <Logo /> 
+      {/* 1. LEFT: 3D Logo Area */}
+      <div className="flex items-center">
+        <Link 
+            to="/dashboard" 
+            className="group flex items-center gap-1"
+            onMouseEnter={() => setIsLogoHovered(true)}
+            onMouseLeave={() => setIsLogoHovered(false)}
+        >
+            {/* 3D Kinetic Core Logo */}
+            <div className="w-12 h-12 relative flex-shrink-0 flex items-center justify-center">
+                <ThreeDLogo className="w-full h-full" isHovered={isLogoHovered} />
+            </div>
+            
+            {/* Brand Text */}
+            <span className="text-xl font-black tracking-tight text-slate-900 dark:text-white -ml-1 transition-colors duration-300">
+                Word<span className="text-[#F54A00]">Automate</span>
+            </span>
+        </Link>
       </div>
 
       {/* 2. RIGHT: Profile Pill */}
