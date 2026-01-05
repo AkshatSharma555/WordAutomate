@@ -1,6 +1,5 @@
 import React from 'react';
-import { User, Mail, ShieldCheck, Info, AlertCircle, Pencil, FileBadge, School, GraduationCap } from 'lucide-react'; 
-// 👇 Import VALIDATORS (Yeh zaroori hai)
+import { User, Mail, ShieldCheck, Info, AlertCircle, Pencil, FileBadge, School, GraduationCap, CheckCircle2 } from 'lucide-react'; 
 import { formatAndValidateName, formatAndValidatePRN } from '../../utils/validators';
 
 const PersonalInfoSection = ({ 
@@ -11,32 +10,26 @@ const PersonalInfoSection = ({
     year, setYear
 }) => {
     
-    // Dropdown Data
     const branches = ["ECS", "EXTC", "IT", "AIDS", "AIML", "IOT", "CE", "ME"];
     const years = ["FE", "SE", "TE", "BE"];
 
-    // 🌟 FIXED NAME HANDLER (Validation Wapas Aa Gayi)
     const handleNameChange = (e) => {
         const val = e.target.value;
-        // Fallback for original name logic
+        // Priority to Original Microsoft Name, fallback to current name
         const originalName = user?.microsoftOriginalName || user?.name || "";
         
-        // Validate immediately
         const result = formatAndValidateName(val, originalName);
         
-        setName(result.name);       // Update Value
-        setNameError(result.error); // Update Error State
+        setName(result.name);       
+        setNameError(result.error); 
     };
 
-    // 🌟 FIXED PRN HANDLER (Validation Wapas Aa Gayi)
     const handlePrnChange = (e) => {
         const val = e.target.value;
-        
-        // Validate immediately
         const result = formatAndValidatePRN(val);
         
-        setPrn(result.prn);         // Update Value
-        setPrnError(result.error);  // Update Error State
+        setPrn(result.prn);         
+        setPrnError(result.error);  
     };
 
     return (
@@ -48,63 +41,78 @@ const PersonalInfoSection = ({
                  <div className="space-y-2">
                     <div className="flex justify-between items-center ml-1">
                         <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Full Name (Editable)</label>
-                        {/* Validation Status Indicator */}
-                        {nameError ? (
-                            <span className="text-[10px] font-bold text-red-500 animate-pulse">Action Required</span>
-                        ) : (
-                            <span className="text-[10px] font-bold text-[#1AA3A3]">Verified Format</span>
-                        )}
+                        
+                        {name && !nameError ? (
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-[#1AA3A3] bg-[#1AA3A3]/10 px-2 py-0.5 rounded-full">
+                                <CheckCircle2 size={12} /> Verified
+                            </span>
+                        ) : nameError ? (
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-red-500 bg-red-500/10 px-2 py-0.5 rounded-full animate-pulse">
+                                <AlertCircle size={12} /> Check Format
+                            </span>
+                        ) : null}
                     </div>
+                    
                     <div className="relative group">
-                        <User className={`absolute left-3.5 top-3.5 size-[18px] transition-colors ${nameError ? "text-red-400" : "text-slate-400 group-hover:text-[#1AA3A3]"}`} />
+                        <User className={`absolute left-3.5 top-3.5 size-[18px] transition-colors ${nameError ? "text-red-400" : (!nameError && name) ? "text-[#1AA3A3]" : "text-slate-400"}`} />
                         <input 
                             type="text" 
                             value={name} 
-                            onChange={handleNameChange} // 👈 Using the fixed handler
+                            onChange={handleNameChange} 
                             className={`w-full pl-10 pr-10 py-3 bg-white dark:bg-[#1a1a1a] border rounded-xl text-slate-700 dark:text-slate-200 font-medium focus:outline-none focus:ring-2 transition-all duration-200 
                                 ${nameError 
                                     ? "border-red-200 focus:border-red-400 focus:ring-red-100 dark:border-red-900/50" 
-                                    : "border-slate-200 dark:border-slate-700 focus:border-[#1AA3A3] focus:ring-[#1AA3A3]/10"
+                                    : (!nameError && name)
+                                        ? "border-[#1AA3A3]/50 focus:border-[#1AA3A3] focus:ring-[#1AA3A3]/10"
+                                        : "border-slate-200 dark:border-slate-700 focus:border-[#1AA3A3] focus:ring-[#1AA3A3]/10"
                                 }`} 
                             placeholder="e.g. Akshat Sharma" 
                         />
-                        <div className="absolute right-3.5 top-3.5 pointer-events-none"><Pencil size={16} className={`transition-colors ${nameError ? "text-red-300" : "text-slate-300 group-hover:text-[#1AA3A3]"}`} /></div>
+                        <div className="absolute right-3.5 top-3.5 pointer-events-none">
+                            <Pencil size={16} className={`transition-colors ${nameError ? "text-red-300" : "text-slate-300 group-hover:text-[#1AA3A3]"}`} />
+                        </div>
                     </div>
-                    {nameError && <div className="flex items-start gap-2 text-xs text-red-500 font-medium ml-1"><AlertCircle size={15} className="mt-0.5 shrink-0" /><span>{nameError}</span></div>}
+                    {nameError && <p className="text-xs text-red-500 font-medium ml-1">{nameError}</p>}
                 </div>
 
                 {/* 2. PRN INPUT */}
                 <div className="space-y-2">
                     <div className="flex justify-between items-center ml-1">
                         <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">PRN Number</label>
-                        {/* Validation Status Indicator */}
-                        {prnError ? (
-                            <span className="text-[10px] font-bold text-red-500 animate-pulse">Required</span>
-                        ) : (
-                            <span className="text-[10px] font-bold text-[#1AA3A3]">Valid Format</span>
-                        )}
+                        
+                        {prn && !prnError ? (
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-[#1AA3A3] bg-[#1AA3A3]/10 px-2 py-0.5 rounded-full">
+                                <CheckCircle2 size={12} /> Valid
+                            </span>
+                        ) : prnError ? (
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-red-500 bg-red-500/10 px-2 py-0.5 rounded-full animate-pulse">
+                                <AlertCircle size={12} /> Invalid
+                            </span>
+                        ) : null}
                     </div>
+
                     <div className="relative group">
-                        <FileBadge className={`absolute left-3.5 top-3.5 size-[18px] transition-colors ${prnError ? "text-red-400" : "text-slate-400 group-hover:text-[#1AA3A3]"}`} />
+                        <FileBadge className={`absolute left-3.5 top-3.5 size-[18px] transition-colors ${prnError ? "text-red-400" : (!prnError && prn) ? "text-[#1AA3A3]" : "text-slate-400"}`} />
                         <input 
                             type="text" 
                             value={prn} 
-                            onChange={handlePrnChange} // 👈 Using the fixed handler
+                            onChange={handlePrnChange} 
                             maxLength={16} 
                             className={`w-full pl-10 pr-10 py-3 bg-white dark:bg-[#1a1a1a] border rounded-xl text-slate-700 dark:text-slate-200 font-medium focus:outline-none focus:ring-2 transition-all duration-200 uppercase tracking-widest
                                 ${prnError 
                                     ? "border-red-200 focus:border-red-400 focus:ring-red-100 dark:border-red-900/50" 
-                                    : "border-slate-200 dark:border-slate-700 focus:border-[#1AA3A3] focus:ring-[#1AA3A3]/10"
+                                    : (!prnError && prn)
+                                        ? "border-[#1AA3A3]/50 focus:border-[#1AA3A3] focus:ring-[#1AA3A3]/10"
+                                        : "border-slate-200 dark:border-slate-700 focus:border-[#1AA3A3] focus:ring-[#1AA3A3]/10"
                                 }
                             `}
                             placeholder="e.g. 123A3049"
                         />
                          <div className="absolute right-3.5 top-3.5 pointer-events-none"><Pencil size={16} className={`transition-colors ${prnError ? "text-red-300" : "text-slate-300 group-hover:text-[#1AA3A3]"}`} /></div>
                     </div>
-                     {prnError && <div className="flex items-start gap-2 text-xs text-red-500 font-medium ml-1"><AlertCircle size={15} className="mt-0.5 shrink-0" /><span>{prnError}</span></div>}
+                     {prnError && <p className="text-xs text-red-500 font-medium ml-1">{prnError}</p>}
                 </div>
 
-                {/* INFO MESSAGE */}
                 <div className="flex items-start gap-2.5 text-[11px] text-slate-500 dark:text-slate-400 ml-1 leading-relaxed bg-slate-50 dark:bg-white/5 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800">
                     <Info size={15} className="mt-0.5 shrink-0 text-[#1AA3A3]" />
                     <div>
@@ -115,7 +123,6 @@ const PersonalInfoSection = ({
 
                 {/* 3. BRANCH & YEAR */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                    {/* Branch Select */}
                     <div className="space-y-2">
                         <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Branch</label>
                         <div className="relative group">
@@ -136,7 +143,6 @@ const PersonalInfoSection = ({
                         </div>
                     </div>
 
-                    {/* Year Select */}
                     <div className="space-y-2">
                         <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Year</label>
                         <div className="relative group">
@@ -158,7 +164,6 @@ const PersonalInfoSection = ({
                     </div>
                 </div>
 
-                {/* Email Input (Read Only) */}
                 <div className="space-y-1.5 pt-4 border-t border-slate-100 dark:border-slate-800/50">
                     <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">College Email</label>
                     <div className="relative">
