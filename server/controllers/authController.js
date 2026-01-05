@@ -37,8 +37,7 @@ export const microsoftLogin = async (req, res) => {
             profilePicBase64 = `data:image/jpeg;base64,${base64Image}`;
         }
     } catch (err) {
-        // Agar photo nahi hai (New user or user removed photo on MS), toh empty rahega
-        // Console log hata diya taaki logs clean rahein
+        // Silent fail if photo doesn't exist
     }
 
     // 3. Database Operation
@@ -52,7 +51,7 @@ export const microsoftLogin = async (req, res) => {
         microsoftId: id,
         authProvider: "microsoft",
         isAccountVerified: true,
-        profilePicture: profilePicBase64, // Jo mila wo save karo (Empty or Image)
+        profilePicture: profilePicBase64,
         microsoftOriginalUrl: profilePicBase64,
         microsoftAccessToken: accessToken,
       });
@@ -72,9 +71,7 @@ export const microsoftLogin = async (req, res) => {
           isUpdated = true;
       }
 
-      // 🔥 AUTO-UPDATE LOGIC:
-      // Agar Microsoft se photo aayi hai, toh DB update kar do (Latest photo sync).
-      // Agar Microsoft pe photo nahi mili (profilePicBase64 empty), toh purani rehne do (Fallback).
+      // Auto-Update Photo Logic
       if (profilePicBase64) {
           if (user.profilePicture !== profilePicBase64) {
               user.profilePicture = profilePicBase64;
@@ -100,10 +97,15 @@ export const microsoftLogin = async (req, res) => {
       success: true,
       message: "Logged in",
       userData: {
+        _id: user._id,
         name: user.name,
         email: user.email,
         isVerified: user.isAccountVerified,
         profilePicture: user.profilePicture,
+        // 🔥 FIX: Added these fields so frontend knows profile is complete
+        prn: user.prn || "",
+        branch: user.branch || "",
+        year: user.year || ""
       },
     });
   } catch (error) {
@@ -125,13 +127,19 @@ export const isAuthenticated = async (req, res) => {
   try {
     const user = await userModel.findById(req.body.userId);
     if (!user) return res.json({ success: false });
+    
     return res.json({
       success: true,
       userData: {
+        _id: user._id,
         name: user.name,
         email: user.email,
         isVerified: user.isAccountVerified,
         profilePicture: user.profilePicture,
+        // 🔥 FIX: Added these fields here too for page refreshes
+        prn: user.prn || "",
+        branch: user.branch || "",
+        year: user.year || ""
       },
     });
   } catch (error) {

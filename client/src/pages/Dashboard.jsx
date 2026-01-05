@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import DashboardNavbar from '../components/layout/DashboardNavbar';
 import MagicBento from '../components/ui/MagicBento';
+import OnboardingModal from '../components/common/OnboardingModal';
 import { ShieldCheck, Loader2, Sparkles, Briefcase, Compass, Users } from 'lucide-react';
 
 const Dashboard = () => {
@@ -16,10 +17,25 @@ const Dashboard = () => {
   useEffect(() => {
     if (!loading && !currentUser) navigate('/login');
     
-    const hour = new Date().getHours();
-    if (hour < 12) setGreeting('Good Morning');
-    else if (hour < 18) setGreeting('Good Afternoon');
-    else setGreeting('Good Evening');
+    // 🔥 ROBUST GREETING LOGIC
+    const updateGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour >= 4 && hour < 12) {
+            setGreeting('Good Morning');
+        } else if (hour >= 12 && hour < 17) {
+            setGreeting('Good Afternoon');
+        } else {
+            // 5 PM se lekar subah 4 AM tak "Good Evening"
+            // Isse raat ke 1-2 baje bhi "Good Morning" nahi bolega
+            setGreeting('Good Evening');
+        }
+    };
+
+    updateGreeting();
+
+    // Optional: Update greeting if user keeps tab open for hours
+    const interval = setInterval(updateGreeting, 60000 * 60); 
+    return () => clearInterval(interval);
 
   }, [currentUser, loading, navigate]);
 
@@ -37,31 +53,34 @@ const Dashboard = () => {
     );
   }
 
-  // --- UPDATED DESCRIPTIONS (More detailed) ---
+  // ✅ Profile Validation
+  const isProfileIncomplete = !currentUser?.prn || !currentUser?.branch || !currentUser?.year;
+
+  // Bento Items
   const bentoItems = [
     {
-      id: 'workspace', // Wide Card (Top Left)
+      id: 'workspace',
       title: 'My Workspace',
       description: 'Access your complete document history. View files received from friends and manage the reports you have generated.',
       icon: Briefcase,
       href: '/workspace',
     },
     {
-      id: 'generate', // Tall Card (Right Side)
+      id: 'generate',
       title: 'Generate Document',
       description: 'Create professional lab reports instantly using our smart templates. Automate formatting, save time, and focus on learning.',
       icon: Sparkles,
       href: '/generate',
     },
     {
-      id: 'explore', // Small Card
+      id: 'explore',
       title: 'Explore',
       description: 'Find peers across departments.',
       icon: Compass,
       href: '/explore',
     },
     {
-      id: 'friends', // Small Card
+      id: 'friends',
       title: 'My Network',
       description: 'Connect with your batchmates.',
       icon: Users,
@@ -72,8 +91,12 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen w-full bg-[#F3F2ED] dark:bg-[#050505] relative transition-colors duration-300 overflow-x-hidden font-sans">
       
+      {/* 🛡️ Gatekeeper Modal */}
+      {isProfileIncomplete && <OnboardingModal />}
+
       <DashboardNavbar user={currentUser} onLogout={handleLogout} />
 
+      {/* Background Ambience */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
           <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] rounded-full blur-[120px] 
               bg-[#F54A00] opacity-10 dark:opacity-[0.08] mix-blend-multiply dark:mix-blend-normal animate-pulse" 
@@ -87,6 +110,7 @@ const Dashboard = () => {
 
       <div className="relative z-10 pt-24 px-4 md:px-8 max-w-6xl mx-auto pb-20">
         
+        {/* Greeting Section */}
         <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -112,6 +136,7 @@ const Dashboard = () => {
             </p>
         </motion.div>
 
+        {/* Bento Grid */}
         <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
