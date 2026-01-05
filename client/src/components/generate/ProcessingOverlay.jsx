@@ -1,23 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Clock, Cpu, CheckCircle, AlertTriangle } from 'lucide-react';
+import { FileText, Clock, Cpu, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import ProcessingLogo from './ProcessingLogo';
 
-// --- ✨ MAGIC BENTO PARTICLES (Fixed: Full Screen & Instant Load) ---
+// --- ✨ MAGIC BENTO PARTICLES (No Changes) ---
 const MagicParticles = React.memo(() => {
-  // 🔥 Count increased to 35 so screen feels full
   const particles = useMemo(() => Array.from({ length: 35 }), []);
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 rounded-[28px]">
       {particles.map((_, i) => {
         const isTeal = i % 2 === 0;
-        const size = Math.random() * 6 + 3; // 3px to 9px
-        const leftPos = Math.random() * 100; // Random horizontal position
-        const duration = Math.random() * 15 + 10; // 10s to 25s (Slow Float)
-        
-        // 🔥 MAGIC TRICK: Negative delay implies animation started in the past.
-        // This ensures the screen is FULL of particles immediately on load.
+        const size = Math.random() * 6 + 3;
+        const leftPos = Math.random() * 100;
+        const duration = Math.random() * 15 + 10;
         const delay = -(Math.random() * 20); 
 
         return (
@@ -25,8 +21,8 @@ const MagicParticles = React.memo(() => {
             key={i}
             initial={{ top: "110%", opacity: 0 }} 
             animate={{ 
-              top: "-20%", // Go way above to ensure they cross full screen
-              opacity: [0, 0.8, 0], // Increased opacity for better visibility
+              top: "-20%", 
+              opacity: [0, 0.8, 0], 
             }}
             transition={{ 
               duration: duration, 
@@ -39,7 +35,6 @@ const MagicParticles = React.memo(() => {
               left: `${leftPos}%`,
               width: `${size}px`,
               height: `${size}px`,
-              // Enhanced Glow
               boxShadow: isTeal ? "0 0 12px #1AA3A3" : "0 0 12px #F54A00",
             }}
           />
@@ -49,13 +44,11 @@ const MagicParticles = React.memo(() => {
   );
 });
 
-// --- TECH LOADER ---
+// --- TECH LOADER (No Changes) ---
 const TechLoader = ({ percentage }) => {
   return (
     <div className="relative w-full h-[190px] flex items-center justify-center">
-       
        <div className="relative w-[190px] h-[190px] flex items-center justify-center">
-           
            {/* 3D CORE */}
            <div className="absolute inset-0 z-0 flex items-center justify-center"> 
                <div className="w-full h-full p-7"> 
@@ -65,22 +58,22 @@ const TechLoader = ({ percentage }) => {
 
            {/* Rotating Outer Ring */}
            <motion.div 
-              animate={{ rotate: 360 }}
-              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-              className="absolute inset-0 rounded-full border border-dashed border-slate-300 dark:border-slate-700 opacity-50 pointer-events-none"
+             animate={{ rotate: 360 }}
+             transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+             className="absolute inset-0 rounded-full border border-dashed border-slate-300 dark:border-slate-700 opacity-50 pointer-events-none"
            />
            
            {/* Inner Static Ring */}
            <div className="absolute inset-4 rounded-full border border-slate-300 dark:border-slate-700 opacity-30 pointer-events-none" />
 
-           {/* PROGRESS SVG (Teal Ring) */}
+           {/* PROGRESS SVG */}
            <svg className="absolute inset-0 size-full -rotate-90 z-10 drop-shadow-md" viewBox="0 0 100 100">
                <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" strokeWidth="2" className="text-slate-200 dark:text-white/10" />
                <motion.circle 
-                  cx="50" cy="50" r="46" fill="none" stroke="#1AA3A3" strokeWidth="5" strokeLinecap="round" strokeDasharray="289" 
-                  strokeDashoffset={289 - (289 * percentage) / 100} 
-                  animate={{ strokeDashoffset: 289 - (289 * percentage) / 100 }} 
-                  transition={{ duration: 0.1, ease: "linear" }} 
+                 cx="50" cy="50" r="46" fill="none" stroke="#1AA3A3" strokeWidth="5" strokeLinecap="round" strokeDasharray="289" 
+                 strokeDashoffset={289 - (289 * percentage) / 100} 
+                 animate={{ strokeDashoffset: 289 - (289 * percentage) / 100 }} 
+                 transition={{ duration: 0.1, ease: "linear" }} 
                />
            </svg>
 
@@ -96,14 +89,31 @@ const TechLoader = ({ percentage }) => {
   );
 };
 
-// --- SUCCESS SCREEN ---
+// --- ✨ UPDATED SUCCESS SCREEN (Feedback added) ---
 const SuccessScreen = () => (
-    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center justify-center text-center h-full font-sans relative z-10">
-        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200, delay: 0.1 }} className="size-20 rounded-full bg-green-500 flex items-center justify-center shadow-[0_0_40px_rgba(34,197,94,0.5)] mb-4">
+    <motion.div 
+        initial={{ scale: 0.9, opacity: 0 }} 
+        animate={{ scale: 1, opacity: 1 }} 
+        className="flex flex-col items-center justify-center text-center h-full font-sans relative z-10"
+    >
+        <motion.div 
+            initial={{ scale: 0 }} 
+            animate={{ scale: 1 }} 
+            transition={{ type: "spring", stiffness: 200, delay: 0.1 }} 
+            className="size-20 rounded-full bg-green-500 flex items-center justify-center shadow-[0_0_40px_rgba(34,197,94,0.5)] mb-4"
+        >
             <CheckCircle size={40} className="text-white" strokeWidth={3} />
         </motion.div>
-        <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2 tracking-tight">DONE!</h2>
-        <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">Processing complete.</p>
+        
+        <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2 tracking-tight">Success!</h2>
+        
+        {/* 👇 Changed Text & Added Spinner for user patience */}
+        <div className="flex items-center gap-2 mt-1">
+            <Loader2 size={16} className="text-[#1AA3A3] animate-spin" />
+            <p className="text-slate-500 dark:text-slate-400 font-bold text-sm">
+                Preparing share options...
+            </p>
+        </div>
     </motion.div>
 );
 
@@ -126,7 +136,8 @@ const ProcessingOverlay = ({ status }) => {
         setDisplayPercent(prev => {
             if (prev >= 100) {
                 clearInterval(interval);
-                setTimeout(() => setIsCompleted(true), 500);
+                // 👇 Reduced delay from 500ms to 200ms for snappier feel
+                setTimeout(() => setIsCompleted(true), 200);
                 return 100;
             }
             if (prev >= targetPercent && targetPercent < 100) return prev; 
@@ -160,7 +171,7 @@ const ProcessingOverlay = ({ status }) => {
         <div className="absolute top-[-50%] left-[-50%] w-[100%] h-[100%] bg-[#1AA3A3] opacity-5 blur-[80px] rounded-full pointer-events-none" />
         <div className="absolute bottom-[-50%] right-[-50%] w-[100%] h-[100%] bg-[#F54A00] opacity-5 blur-[80px] rounded-full pointer-events-none" />
 
-        {/* 🔥 MAGIC PARTICLES (Ab screen bhari hui dikhegi) */}
+        {/* MAGIC PARTICLES */}
         <MagicParticles />
 
         <div className="relative z-10 w-full h-full max-w-sm mx-auto flex flex-col">
