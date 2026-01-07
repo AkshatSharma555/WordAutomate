@@ -28,7 +28,7 @@ body {
     font-family: 'Poppins', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* ⚠️ REMOVED GLOBAL TRANSITION: Yeh startup lag ka main karan tha */
+    /* ⚠️ REMOVED GLOBAL TRANSITION: Startup lag prevent karne ke liye */
 }
 
 /* Dark Mode Default Override */
@@ -47,7 +47,7 @@ body {
     color: white;
 }
 
-/* --- CUSTOM SCROLLBAR --- */
+/* --- CUSTOM SCROLLBAR (Browser Default) --- */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -73,7 +73,9 @@ body {
     background: #555;
 }
 
-/* Utility Classes */
+/* --- UTILITY CLASSES --- */
+
+/* 1. Existing Utilities */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
@@ -81,3 +83,12 @@ body {
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); border-radius: 20px; }
 .dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }
+
+/* 2. 👇 NEW: For Wizard Modal (Scrolls but Hidden Bar) */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
