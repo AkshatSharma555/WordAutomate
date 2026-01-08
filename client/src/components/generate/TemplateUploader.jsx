@@ -2,69 +2,55 @@ import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import mammoth from 'mammoth';
 import { 
-  FileText, CheckCircle2, AlertCircle, 
-  ScanSearch, X, Plus, FileUp, Info 
+  CheckCircle2, AlertCircle, ScanSearch, X, FileType, Sparkles,
+  LayoutTemplate, ShieldCheck, Plus, Eye
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const TemplateUploader = ({ file, setFile }) => {
-  const [status, setStatus] = useState('idle'); // idle | scanning | success | error
-  const [missingTags, setMissingTags] = useState([]);
+// 👇 Image Path Update (Ensure this path is correct)
+import mockDocPreview from '../../assets/mockDoc.png';
 
-  // --- SMART VALIDATION LOGIC ---
+const TemplateUploader = ({ file, setFile }) => {
+  const [status, setStatus] = useState('idle');
+  const [errorDetails, setErrorDetails] = useState(null);
+  const [showFullImage, setShowFullImage] = useState(false);
+
   const validateDoc = async (uploadedFile) => {
     setStatus('scanning');
-    
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
         const arrayBuffer = e.target.result;
         const result = await mammoth.extractRawText({ arrayBuffer });
         const rawText = result.value;
-
-        // 1. Check Valid Tags
-        const hasValidName = rawText.includes('{name}') || rawText.includes('{NAME}');
-        const hasValidPRN = rawText.includes('{prn}') || rawText.includes('{PRN}');
-
-        // 2. Check for Mixed Case Errors
-        const mixedCaseNameMatch = rawText.match(/{(?!name|NAME)(n|N)[a-zA-Z]{3}}/); 
-        const mixedCasePRNMatch = rawText.match(/{(?!prn|PRN)(p|P)[a-zA-Z]{2}}/);
+        const hasName = /\{name\}/i.test(rawText);
+        const hasPrn = /\{prn\}/i.test(rawText);
 
         setTimeout(() => {
-          if (hasValidName && hasValidPRN) {
+          if (hasName && hasPrn) {
             setFile(uploadedFile);
             setStatus('success');
-            setMissingTags([]);
+            setErrorDetails(null);
           } else {
             const missing = [];
-            
-            if (!hasValidName) {
-                if (mixedCaseNameMatch) {
-                    missing.push(`Invalid: ${mixedCaseNameMatch[0]}`);
-                    missing.push('Use {NAME} or {name}');
-                } else {
-                    missing.push('{NAME} or {name}');
-                }
-            }
-            
-            if (!hasValidPRN) {
-                if (mixedCasePRNMatch) {
-                    missing.push(`Invalid: ${mixedCasePRNMatch[0]}`);
-                    missing.push('Use {PRN} or {prn}');
-                } else {
-                    missing.push('{PRN} or {prn}');
-                }
-            }
-            
-            setMissingTags(missing);
+            if (!hasName) missing.push("{name}");
+            if (!hasPrn) missing.push("{prn}");
+            setErrorDetails({
+                title: "Missing Mandatory Placeholders",
+                items: missing,
+                message: "Your document needs these specific tags to work."
+            });
             setStatus('error');
           }
-        }, 1200); 
+        }, 1500);
 
       } catch (err) {
         console.error(err);
         setStatus('error');
-        setMissingTags(['Invalid File Structure']);
+        setErrorDetails({ 
+            title: "File Read Error", 
+            message: "We couldn't parse this file. Ensure it's a valid .docx." 
+        });
       }
     };
     reader.readAsArrayBuffer(uploadedFile);
@@ -83,184 +69,207 @@ const TemplateUploader = ({ file, setFile }) => {
   });
 
   const resetUpload = (e) => {
-    e.stopPropagation();
+    if(e) e.stopPropagation();
     setFile(null);
     setStatus('idle');
-    setMissingTags([]);
+    setErrorDetails(null);
   };
 
   return (
-    // Fixed container - No internal scrollbars
-    <div className="flex flex-col h-full bg-white dark:bg-[#111111] rounded-[24px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+    <>
+    {/* Main Container: Flex Column to handle layout properly */}
+    <div className="flex flex-col h-full bg-white dark:bg-[#111111] rounded-[24px] border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/40 dark:shadow-none font-sans overflow-hidden relative group/container">
       
-      {/* --- HEADER --- */}
-      <div className="px-6 py-4 shrink-0">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <div className="p-1.5 bg-[#1AA3A3]/10 rounded-lg">
-            <FileText className="text-[#1AA3A3]" size={18} />
-          </div>
-          Template Source
-        </h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 pl-10">
-          Upload your <strong>.docx</strong> master file here.
-        </p>
+      {/* --- 1. HEADER (Always Visible) --- */}
+      <div className="px-5 py-4 shrink-0 flex justify-between items-center border-b border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-[#151515]">
+        <div className="flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-br from-[#1AA3A3] to-[#148f8f] rounded-xl shadow-sm">
+                <LayoutTemplate className="text-white" size={18} />
+            </div>
+            <div>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
+                    Master Template
+                </h2>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Upload your .docx file
+                </p>
+            </div>
+        </div>
+        {status === 'success' && <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1 rounded-full border border-emerald-100 dark:border-emerald-900/30 flex items-center gap-1"><CheckCircle2 size={12}/> Verified</span>}
       </div>
 
-      {/* --- MAIN BODY (Occupies remaining space) --- */}
-      <div className="flex-1 px-4 pb-2 flex flex-col min-h-0">
+      {/* --- 2. SCROLLABLE BODY (Fixes Zoom Issue) --- */}
+      <div className="flex-1 overflow-y-auto relative scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
         
-        {/* DROPZONE */}
         <div 
           {...getRootProps()} 
-          className={`flex-1 relative rounded-2xl border-2 border-dashed transition-all duration-300 flex flex-col items-center justify-center p-4 text-center cursor-pointer group w-full
-            ${status === 'error' 
-              ? 'border-red-300 bg-red-50/50 dark:border-red-900/50 dark:bg-red-900/10' 
-              : status === 'success'
-                ? 'border-green-300 bg-green-50/50 dark:border-green-900/50 dark:bg-green-900/10'
-                : isDragActive 
-                  ? 'border-[#1AA3A3] bg-[#1AA3A3]/5 scale-[0.99]' 
-                  : 'border-slate-200 dark:border-slate-800 bg-slate-50/30 dark:bg-[#151515] hover:border-[#1AA3A3]/40 hover:bg-slate-100 dark:hover:bg-[#1a1a1a]'
-            }`}
+          className={`flex flex-col items-center justify-center min-h-full p-4 transition-all duration-300 outline-none
+            ${isDragActive ? 'bg-[#1AA3A3]/5 ring-4 ring-inset ring-[#1AA3A3]/20' : ''}`}
         >
           <input {...getInputProps()} />
 
           <AnimatePresence mode="wait">
             
-            {/* STATE 1: IDLE */}
+            {/* STATE: IDLE */}
             {status === 'idle' && (
               <motion.div 
                 key="idle"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="flex flex-col items-center gap-3"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex flex-col items-center gap-6 w-full"
               >
-                 {/* Floating Add Button */}
-                 <div className="relative group-hover:-translate-y-1 transition-transform duration-300">
-                    <div className="absolute inset-0 bg-[#1AA3A3] blur-xl opacity-20 rounded-full"></div>
-                    <div className="size-14 bg-white dark:bg-[#222] rounded-full flex items-center justify-center shadow-xl border border-slate-100 dark:border-slate-700 relative z-10">
-                        <Plus size={28} className="text-[#1AA3A3]" strokeWidth={3} />
+                 {/* A. Guide Image (Scales nicely) */}
+                 <div 
+                    className="relative w-full max-w-[280px] cursor-zoom-in group/image"
+                    onClick={(e) => { e.stopPropagation(); setShowFullImage(true); }}
+                 >
+                    <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shadow-lg bg-white">
+                        {/* max-h restriction ensures it doesn't take full screen on mobile */}
+                        <img 
+                            src={mockDocPreview} 
+                            alt="Format Guide" 
+                            className="w-full h-auto max-h-[35vh] object-contain"
+                        />
                     </div>
-                    <div className="absolute -bottom-1 -right-1 bg-[#1AA3A3] text-white p-1 rounded-full border-[3px] border-white dark:border-[#151515] z-20">
-                        <FileUp size={12} />
+                    
+                    {/* Zoom Hint */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity bg-black/10 backdrop-blur-[1px] rounded-lg">
+                        <span className="bg-white/90 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                            <Eye size={10} /> View
+                        </span>
                     </div>
                  </div>
 
-                 <div className="space-y-0.5">
-                   <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                      Click or Drag File
-                   </h3>
-                   <p className="text-[10px] text-slate-400 max-w-[180px] mx-auto leading-tight">
-                      Only .docx files supported
-                   </p>
+                 {/* B. Upload Button */}
+                 <div className="flex flex-col items-center gap-3">
+                    <button className="flex items-center gap-2 bg-[#1AA3A3] hover:bg-[#158585] text-white px-6 py-3 rounded-full shadow-lg shadow-[#1AA3A3]/30 transition-transform active:scale-95 group/btn">
+                        <Plus size={20} strokeWidth={3} className="group-hover/btn:rotate-90 transition-transform" />
+                        <span className="font-bold text-sm">Upload Template</span>
+                    </button>
+                    
+                    <p className="text-[10px] text-slate-400 text-center max-w-[200px]">
+                        Drag & Drop or Click to browse.<br/>
+                        Required: <code className="text-[#F54A00] font-mono">{`{name}`}</code> & <code className="text-[#1AA3A3] font-mono">{`{prn}`}</code>
+                    </p>
                  </div>
+
               </motion.div>
             )}
 
-            {/* STATE 2: SCANNING */}
+            {/* STATE: SCANNING */}
             {status === 'scanning' && (
               <motion.div 
                 key="scanning"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex flex-col items-center"
+                className="flex flex-col items-center justify-center gap-4 py-10"
               >
-                 <div className="relative size-16 mb-4">
-                    <div className="absolute inset-0 border-[3px] border-slate-200 dark:border-slate-800 rounded-full"></div>
-                    <div className="absolute inset-0 border-[3px] border-[#1AA3A3] border-t-transparent rounded-full animate-spin"></div>
-                    <ScanSearch className="absolute inset-0 m-auto text-[#1AA3A3] animate-pulse" size={24} />
+                 <div className="relative size-20">
+                    <div className="absolute inset-0 bg-[#1AA3A3]/10 rounded-full animate-ping"></div>
+                    <div className="absolute inset-0 border-[3px] border-[#1AA3A3] border-t-transparent border-l-transparent rounded-full animate-spin"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <ScanSearch className="text-[#1AA3A3]" size={32} />
+                    </div>
                  </div>
-                 <h3 className="text-xs font-bold text-slate-800 dark:text-white tracking-wide uppercase">
-                    Analyzing Structure...
-                 </h3>
-                 <p className="text-[10px] text-slate-500 mt-1">Verifying tags: {`{NAME}, {PRN}`}</p>
+                 <p className="text-xs font-bold text-slate-600 dark:text-slate-300 animate-pulse">
+                    Validating Structure...
+                 </p>
               </motion.div>
             )}
 
-            {/* STATE 3: SUCCESS */}
+            {/* STATE: SUCCESS */}
             {status === 'success' && (
               <motion.div 
                 key="success"
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="flex flex-col items-center w-full"
+                className="flex flex-col items-center gap-4 py-6 w-full max-w-xs"
               >
-                 <div className="size-12 bg-green-100 dark:bg-green-900/30 text-green-600 rounded-full flex items-center justify-center mb-3 shadow-sm ring-4 ring-green-50 dark:ring-green-900/10">
-                    <CheckCircle2 size={24} />
-                 </div>
-                 <h3 className="text-sm font-bold text-green-700 dark:text-green-400">Template Verified!</h3>
+                 <ShieldCheck size={56} className="text-emerald-500 drop-shadow-md" />
                  
-                 {/* File Chip */}
-                 <div className="mt-4 w-full max-w-[220px] px-3 py-2 bg-white dark:bg-black/40 border border-green-200 dark:border-green-900/50 rounded-xl flex items-center gap-2 shadow-sm">
-                    <div className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500">
-                       <FileText size={16} />
+                 <div className="text-center">
+                    <h3 className="text-lg font-black text-slate-800 dark:text-white">Perfect!</h3>
+                    <p className="text-xs text-slate-500">Document is ready for automation.</p>
+                 </div>
+                 
+                 <div className="w-full bg-slate-50 dark:bg-slate-900 border border-emerald-200 dark:border-emerald-900/30 rounded-xl p-3 flex items-center gap-3 shadow-sm">
+                    <div className="p-2 bg-white dark:bg-black rounded-lg text-slate-500 shrink-0">
+                       <FileType size={20} />
                     </div>
-                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200 truncate flex-1 text-left">
-                       {file.name}
-                    </span>
-                    <button 
-                        onClick={resetUpload} 
-                        className="p-1 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 rounded-md transition-colors"
-                        title="Remove file"
-                    >
-                       <X size={14} />
-                    </button>
+                    <div className="min-w-0 flex-1 text-left">
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{file?.name}</p>
+                    </div>
+                    <button onClick={resetUpload} className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-lg transition-colors"><X size={16}/></button>
                  </div>
               </motion.div>
             )}
 
-            {/* STATE 4: ERROR */}
+            {/* STATE: ERROR */}
             {status === 'error' && (
               <motion.div 
                 key="error"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex flex-col items-center w-full px-1"
+                className="flex flex-col items-center gap-4 py-6 text-center px-4"
               >
-                 <div className="size-10 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mb-2">
-                    <AlertCircle size={20} />
+                 <AlertCircle size={48} className="text-red-500" />
+                 <div>
+                    <h3 className="text-base font-bold text-red-600 dark:text-red-400 mb-1">
+                        {errorDetails?.title || "Validation Failed"}
+                    </h3>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed max-w-[240px] mx-auto">{errorDetails?.message}</p>
                  </div>
-                 <h3 className="text-xs font-bold text-red-600 dark:text-red-400 mb-1">Validation Failed</h3>
-                 
-                 <div className="flex flex-wrap justify-center gap-1.5 mb-3 w-full">
-                    {missingTags.map((tag, idx) => (
-                       <span key={idx} className="px-2 py-1 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-[9px] font-mono font-bold rounded border border-red-200 dark:border-red-800 text-center">
-                          {tag}
-                       </span>
-                    ))}
-                 </div>
-
                  <button 
                    onClick={(e) => { e.stopPropagation(); setStatus('idle'); }}
-                   className="text-[10px] font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white underline decoration-dashed"
+                   className="px-5 py-2 bg-slate-900 dark:bg-white text-white dark:text-black text-xs font-bold rounded-lg shadow-md hover:scale-105 transition-transform"
                  >
-                   Try another file
+                   Try Again
                  </button>
               </motion.div>
             )}
 
           </AnimatePresence>
         </div>
-
       </div>
 
-      {/* --- FOOTER TIP (Always visible, no scroll) --- */}
-      <div className="px-4 pb-4 shrink-0">
-         <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 rounded-xl p-3 flex items-start gap-2.5">
-            <Info size={14} className="text-amber-500 mt-0.5 shrink-0" />
-            <div className="text-left">
-               <p className="text-[10px] font-bold text-amber-700 dark:text-amber-500 mb-0.5 uppercase tracking-wide">
-                  Strict Requirement
-               </p>
-               <p className="text-[10px] text-amber-600/90 dark:text-amber-500/80 leading-relaxed font-medium">
-                  Use exactly <code className="font-mono bg-white dark:bg-black/50 px-1 rounded border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400">{`{NAME}`}</code> and <code className="font-mono bg-white dark:bg-black/50 px-1 rounded border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400">{`{PRN}`}</code>. Mixed case (e.g. {`{Name}`}) not supported.
-               </p>
+      {/* --- 3. FOOTER (Always Visible) --- */}
+      <div className="px-5 pb-5 shrink-0 bg-white dark:bg-[#111111] pt-2">
+         <div className="bg-indigo-50 dark:bg-[#151515] border border-indigo-100 dark:border-slate-800 rounded-xl p-3 flex items-start gap-3">
+            <Sparkles size={16} className="text-indigo-500 mt-0.5 shrink-0" />
+            <div className="text-[10px] text-slate-600 dark:text-slate-400 leading-snug">
+               <span className="font-bold text-slate-800 dark:text-slate-200 block">We handle renaming</span>
+               File becomes: <span className="font-mono bg-white dark:bg-black/50 px-1 rounded border border-slate-200 dark:border-slate-700">Lab_User_PRN.pdf</span>
             </div>
          </div>
       </div>
 
     </div>
+
+    {/* --- FULL IMAGE MODAL (Zoom) --- */}
+    <AnimatePresence>
+        {showFullImage && (
+            <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowFullImage(false)}
+                className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 cursor-zoom-out"
+            >
+                <motion.img 
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    src={mockDocPreview} 
+                    className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+                />
+                <button className="absolute top-5 right-5 text-white/70 hover:text-white p-2 bg-white/10 rounded-full">
+                    <X size={24} />
+                </button>
+            </motion.div>
+        )}
+    </AnimatePresence>
+    </>
   );
 };
 

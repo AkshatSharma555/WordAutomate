@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'; // useEffect hata diya (not needed)
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
@@ -8,10 +8,13 @@ import WizardLayout from './onboarding/WizardLayout';
 import StepIdentity from './onboarding/StepIdentity';
 import StepAcademic from './onboarding/StepAcademic';
 import StepGuide from './onboarding/StepGuide';
+import StepFeatures from './onboarding/StepFeatures';
 
 const OnboardingModal = () => {
     const { currentUser, setUser } = useAuth();
     
+    // Theme logic removed from here (It's now handled globally via Context)
+
     const searchParams = new URLSearchParams(window.location.search);
     const isTestMode = searchParams.get('test_mode') === 'true';
 
@@ -56,13 +59,16 @@ const OnboardingModal = () => {
     };
 
     const handleSubmit = async () => {
+        if (isSubmitting) return; 
         setIsSubmitting(true);
 
+        // Test Mode
         if (isTestMode) {
             setTimeout(() => {
-                setIsSubmitting(false);
                 toast.success("Test Mode: Setup Complete!");
-                setUser({ ...currentUser, ...formData });
+                // 🔥 Remove 'theme: light', let it default to dark
+                if (setUser) setUser({ ...currentUser, ...formData, isAccountVerified: true });
+                setIsSubmitting(false);
             }, 1000);
             return;
         }
@@ -73,34 +79,44 @@ const OnboardingModal = () => {
             const { data } = await axios.put(
                 `${apiUrl}/user/update-personal-info`,
                 formData,
-                { withCredentials: true }
+                { 
+                    withCredentials: true,
+                    headers: { 'Content-Type': 'application/json' }
+                }
             );
 
             if (data.success) {
-                // 1. Start Smoke Animation
                 setIsExiting(true); 
 
-                // 2. Prepare Data
                 const updatedUser = {
                     ...currentUser,
-                    name: data.name,
-                    prn: data.prn,
-                    branch: data.branch,
-                    year: data.year
+                    name: data.name || formData.name,
+                    prn: data.prn || formData.prn,
+                    branch: data.branch || formData.branch,
+                    year: data.year || formData.year,
+                    isAccountVerified: true, 
+                    // 🔥 Note: Theme is NOT passed here. 
+                    // Since DB defaults to 'dark', Context stays 'dark'. No flicker.
                 };
 
-                // 3. Wait exactly for animation duration (600ms) then update state
-                // ⚠️ Removed 'window.location.reload()' - this fixes the refresh jerk!
                 setTimeout(() => {
-                    toast.success("Ready to automate! 🚀");
-                    setUser(updatedUser); // Instant seamless update
+                    toast.success("All Set! Welcome Aboard 🚀");
+                    if (typeof setUser === 'function') {
+                        setUser(updatedUser);
+                    } else {
+                        window.location.reload();
+                    }
                 }, 600); 
+            } else {
+                throw new Error(data.message || "Update failed");
             }
+
         } catch (error) {
-            console.error("Update failed", error);
-            const errorMsg = error.response?.data?.message || "Failed to update profile.";
+            console.error("Onboarding Update Failed:", error);
+            const errorMsg = error.response?.data?.message || error.message || "Failed to update profile.";
             toast.error(errorMsg);
             setIsSubmitting(false);
+            setIsExiting(false);
         }
     };
 
@@ -111,7 +127,9 @@ const OnboardingModal = () => {
             case 2:
                 return <StepAcademic formData={formData} errors={errors} onChange={handleChange} onNext={() => setStep(3)} />;
             case 3:
-                return <StepGuide onSubmit={handleSubmit} isSubmitting={isSubmitting} userName={formData.name} />;
+                return <StepGuide onNext={() => setStep(4)} userName={formData.name} />;
+            case 4:
+                return <StepFeatures onSubmit={handleSubmit} isSubmitting={isSubmitting} />;
             default: return null;
         }
     };
@@ -120,7 +138,8 @@ const OnboardingModal = () => {
         switch(step) {
             case 1: return { title: "Identity Details", subtitle: "Verify your printable details" };
             case 2: return { title: "Academic Profile", subtitle: "Help friends find you" };
-            case 3: return { title: "Quick Guide", subtitle: "How to generate documents" };
+            case 3: return { title: "Format Guide", subtitle: "How to setup your Word file" };
+            case 4: return { title: "Pro Tips", subtitle: "Get the most out of the app" };
             default: return { title: "Setup", subtitle: "" };
         }
     };
@@ -130,7 +149,7 @@ const OnboardingModal = () => {
             title={getTitles().title} 
             subtitle={getTitles().subtitle} 
             currentStep={step} 
-            totalSteps={3}
+            totalSteps={4} 
             isExiting={isExiting}
         >
             {renderStep()}

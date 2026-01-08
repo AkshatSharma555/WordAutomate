@@ -1,7 +1,8 @@
 import React from 'react';
-import { FileText, Sparkles, Loader2, Check, ExternalLink, MessageSquareQuote } from 'lucide-react';
+import { FileText, Check, ArrowRight, MessageSquareQuote } from 'lucide-react';
 
-const StepGuide = ({ onSubmit, isSubmitting, userName }) => {
+// 👇 Props updated: 'onSubmit' hata kar 'onNext' lagaya hai
+const StepGuide = ({ onNext, userName }) => {
   return (
     <div className="flex flex-col md:flex-row h-full gap-6 items-stretch">
         
@@ -39,13 +40,13 @@ const StepGuide = ({ onSubmit, isSubmitting, userName }) => {
                         </p>
                     </div>
 
-                    {/* 4. The "Format Freedom" Note (Handwritten Style) */}
+                    {/* 4. The "Format Freedom" Note */}
                     <div className="mt-4 relative bg-yellow-50 border border-yellow-100 p-2 rounded-lg -rotate-1 shadow-sm text-left">
                         <div className="flex gap-1.5 items-start">
                             <MessageSquareQuote size={10} className="text-yellow-600 mt-0.5 shrink-0" />
                             <p className="text-[7px] leading-relaxed text-slate-600 font-sans">
                                 <strong className="text-yellow-700 block mb-0.5">Note:</strong>
-                                Put any text, tables, or images you want! Just ensure <span className="font-bold text-[#F54A00]">{`{}`}</span> placeholders are present where Name/PRN is needed.
+                                Put any text, tables, or images you want! Just ensure <span className="font-bold text-[#F54A00]">{`{}`}</span> placeholders are present.
                             </p>
                         </div>
                         {/* Little Arrow pointing up */}
@@ -79,23 +80,18 @@ const StepGuide = ({ onSubmit, isSubmitting, userName }) => {
                     </div>
                     <div className="text-xs text-slate-600 dark:text-slate-300 leading-snug">
                         <span className="block text-slate-900 dark:text-white font-bold mb-0.5">Auto Renaming</span>
-                        We auto-name your PDF: <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1 rounded break-all">Lab_{userName ? userName.split(' ')[0] : 'User'}_PRN.pdf</span>
+                        We auto-name: <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1 rounded break-all">Lab_{userName ? userName.split(' ')[0] : 'User'}_PRN.pdf</span>
                     </div>
                 </div>
              </div>
 
-             {/* Action Button */}
+             {/* Action Button - Changed to Next Step */}
              <div className="pt-2 mt-auto md:mt-0">
                 <button 
-                    onClick={onSubmit}
-                    disabled={isSubmitting}
-                    className="w-full py-3.5 bg-gradient-to-r from-[#1AA3A3] to-[#148f8f] hover:from-[#178a8a] hover:to-[#127a7a] text-white text-sm font-bold rounded-xl shadow-lg shadow-[#1AA3A3]/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:grayscale"
+                    onClick={onNext}
+                    className="w-full py-3.5 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-200 text-white dark:text-black text-sm font-bold rounded-xl shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                 >
-                    {isSubmitting ? (
-                        <> <Loader2 size={18} className="animate-spin" /> Finalizing... </>
-                    ) : (
-                        <> Launch Dashboard <ExternalLink size={16} className="text-white/80" /> </>
-                    )}
+                    Next Step <ArrowRight size={16} />
                 </button>
              </div>
         </div>

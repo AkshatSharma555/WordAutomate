@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { useAuth } from './AuthContext';
 
 const ThemeContext = createContext();
@@ -8,45 +8,55 @@ export const useTheme = () => useContext(ThemeContext);
 export const ThemeProvider = ({ children }) => {
     const { currentUser } = useAuth();
     
-    // 1. Initial Load: Check LocalStorage (Key: 'appTheme') -> Default 'light'
-    // Hum lazy initialization use kar rahe hain taaki render block na ho
+    // 1. Initial Load: Default to LocalStorage or Dark
     const [theme, setTheme] = useState(() => {
-        return localStorage.getItem('appTheme') || 'light';
+        return localStorage.getItem('appTheme') || 'dark';
     });
 
-    // 2. Sync with Database when User Logs In
-    // Jaise hi currentUser change hoga (Login pe), ye chalega aur state update karega.
-    useEffect(() => {
-        if (currentUser && currentUser.theme) {
-            // Agar DB theme aur current theme alag hain, tabhi update karo
-            if (currentUser.theme !== theme) {
-                setTheme(currentUser.theme);
-            }
-        }
-    }, [currentUser]);
+    // 2. Track Last Synced DB Theme to prevent loops
+    const lastSyncedTheme = useRef(theme);
 
-    // 3. Apply Class to HTML & Save to LocalStorage (The Main Effect)
-    // Jab bhi 'theme' state change hoga, ye DOM update karega.
+    useEffect(() => {
+        if (currentUser) {
+            // --- SAFETY CHECK START ---
+            // Sirf tabhi Force Dark karo jab user explicitly UNVERIFIED ho (New Account).
+            // Agar field missing hai ya true hai, toh mat chedo.
+            if (currentUser.isAccountVerified === false) {
+                if (theme !== 'dark') setTheme('dark');
+                return; // Stop execution here
+            } 
+            // --- SAFETY CHECK END ---
+
+            // Smart Sync Logic
+            const serverTheme = currentUser.theme;
+            
+            // Agar DB mein valid theme hai, aur wo pichli baar se alag hai
+            if (serverTheme && serverTheme !== lastSyncedTheme.current) {
+                // Toh UI update karo
+                setTheme(serverTheme);
+                // Aur Ref update karo
+                lastSyncedTheme.current = serverTheme;
+            }
+        } 
+    }, [currentUser]); 
+
+    // 3. Apply Class & Save to LocalStorage (Standard Logic)
     useEffect(() => {
         const root = window.document.documentElement;
-        
-        // Clean cleanup
         root.classList.remove('light', 'dark');
-        
-        // Add new class
         root.classList.add(theme);
-        
-        // Save to LocalStorage with CONSISTENT key
         localStorage.setItem('appTheme', theme);
         
-    }, [theme]);
+        // Update Ref to match current state (Helps in manual toggles)
+        if (currentUser && currentUser.theme === theme) {
+             lastSyncedTheme.current = theme;
+        }
+    }, [theme, currentUser]);
 
-    // 4. Toggle Function
     const toggleTheme = () => {
         setTheme(prev => prev === 'light' ? 'dark' : 'light');
     };
 
-    // Helper to manually set theme (used for Discard changes in Settings)
     const setThemeManual = (newTheme) => {
         setTheme(newTheme);
     };

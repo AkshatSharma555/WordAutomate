@@ -15,17 +15,10 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 const USER_URL = `${API_BASE_URL}/user`;
 
 const Settings = () => {
-  const { currentUser, logout, loading, setCurrentUser, applyTheme } = useAuth(); 
+  const { currentUser, logout, loading, setCurrentUser } = useAuth();
   const { theme, toggleTheme } = useTheme(); 
   const navigate = useNavigate();
 
-  // Database States
-  const [dbTheme, setDbTheme] = useState('light');
-  const [dbName, setDbName] = useState('');
-  const [dbPrn, setDbPrn] = useState('');
-  const [dbBranch, setDbBranch] = useState('');
-  const [dbYear, setDbYear] = useState('');
-  
   // Local Form States
   const [name, setName] = useState("");
   const [nameError, setNameError] = useState("");
@@ -33,6 +26,12 @@ const Settings = () => {
   const [prnError, setPrnError] = useState("");
   const [branch, setBranch] = useState("");
   const [year, setYear] = useState("");
+
+  // Track DB Values for Personal Info
+  const [dbName, setDbName] = useState('');
+  const [dbPrn, setDbPrn] = useState('');
+  const [dbBranch, setDbBranch] = useState('');
+  const [dbYear, setDbYear] = useState('');
 
   const [isUploading, setIsUploading] = useState(false);
   const [isFetching, setIsFetching] = useState(true); 
@@ -47,7 +46,7 @@ const Settings = () => {
                 const user = data.userData;
                 setCurrentUser(user);
                 
-                setDbTheme(user.theme || 'light');
+                // Initialize States
                 setDbName(user.name || "");
                 setDbPrn(user.prn || "");
                 setDbBranch(user.branch || "");
@@ -69,9 +68,17 @@ const Settings = () => {
         if (!currentUser) navigate('/login');
         else fetchFreshUserData();
     }
-  }, [loading, navigate, setCurrentUser]);
+  }, [loading, navigate]); 
 
   const handleLogout = async () => { await logout(); navigate('/'); };
+
+  // 🔥 LIVE COMPARISON LOGIC
+  // Compare 'Current UI Theme' with 'User Object Theme'
+  const currentDbTheme = currentUser?.theme || 'dark';
+  const hasThemeChanged = theme !== currentDbTheme;
+  
+  const hasPersonalInfoChanged = (name.trim() !== dbName.trim()) || (prn.trim() !== dbPrn.trim()) || (branch !== dbBranch) || (year !== dbYear);
+  const hasChanges = hasThemeChanged || hasPersonalInfoChanged;
 
   const handleSaveChanges = async () => {
     setIsUploading(true);
@@ -79,12 +86,9 @@ const Settings = () => {
     let somethingSaved = false;
     let hasError = false;
 
-    const isThemeChanged = theme !== dbTheme; 
-    const isPersonalInfoChanged = (name.trim() !== dbName.trim()) || (prn.trim() !== dbPrn.trim()) || (branch !== dbBranch) || (year !== dbYear);
-
     try {
         // 1. Update Personal Info
-        if (isPersonalInfoChanged) {
+        if (hasPersonalInfoChanged) {
             if (nameError || prnError) {
                 setToast({ show: true, message: "Fix errors in Personal Info.", type: 'error' });
                 hasError = true;
@@ -103,17 +107,18 @@ const Settings = () => {
         }
         
         // 2. Update Theme
-        if (isThemeChanged && !hasError) {
+        if (hasThemeChanged && !hasError) {
             const { data } = await axios.put(`${USER_URL}/update-theme`, { theme }, { withCredentials: true });
             if (data.success) { 
-                updates.theme = data.theme; 
-                setDbTheme(data.theme); 
-                if(applyTheme) applyTheme(data.theme);
+                // 🔥 Critical: Update the user object theme to match current UI theme
+                updates.theme = theme; 
                 somethingSaved = true; 
             }
         }
         
         if (somethingSaved) {
+            // Update Context: This will align currentUser.theme with the local 'theme' state
+            // preventing the button from reappearing or the theme from reverting
             setCurrentUser(updates);
             setToast({ show: true, message: "Changes saved successfully!", type: 'success' });
         } else if (!hasError) {
@@ -121,6 +126,7 @@ const Settings = () => {
         }
     } catch (error) { 
         setToast({ show: true, message: "Failed to save changes.", type: 'error' }); 
+        console.error(error);
     } finally { 
         setIsUploading(false); 
     }
@@ -128,10 +134,9 @@ const Settings = () => {
 
   if (loading || isFetching) return <div className="min-h-screen flex items-center justify-center bg-[#F3F2ED] dark:bg-[#050505]"><Loader2 className="size-8 animate-spin text-[#1AA3A3]" /></div>;
 
-  const hasChanges = (theme !== dbTheme) || (name.trim() !== dbName.trim()) || (prn.trim() !== dbPrn.trim()) || (branch !== dbBranch) || (year !== dbYear);
-
   return (
     <div className="min-h-screen w-full bg-[#F3F2ED] dark:bg-[#050505] relative overflow-hidden pb-32 transition-colors duration-300 font-sans">
+      {/* Background Ambience */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
           <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] rounded-full blur-[120px] bg-[#F54A00] opacity-5 dark:opacity-[0.02]" />
           <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] rounded-full blur-[120px] bg-[#1AA3A3] opacity-5 dark:opacity-[0.02]" />
@@ -174,7 +179,9 @@ const Settings = () => {
                     <div>
                         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Appearance</h3>
                         <p className="text-sm text-slate-500 dark:text-slate-400">
-                            {theme !== dbTheme ? <span className="text-[#1AA3A3] font-semibold">Local changes pending.</span> : (theme === 'dark' ? 'Dark mode is active.' : 'Light mode is active.')}
+                            {hasThemeChanged 
+                                ? <span className="text-[#1AA3A3] font-semibold animate-pulse">Changes pending...</span> 
+                                : (theme === 'dark' ? 'Dark mode is active.' : 'Light mode is active.')}
                         </p>
                     </div>
                 </div>

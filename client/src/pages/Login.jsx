@@ -1,18 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import ThreeDLogo from '../components/common/ThreeDLogo'; 
 import { Loader2, LockKeyhole, Building2, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+// 👇 Import Theme Hook
+import { useTheme } from '../context/ThemeContext';
 import Breadcrumb from '../components/common/Breadcrumb';
 
 const Login = () => {
   const { login } = useAuth();
+  // 👇 Destructure manual setter
+  const { setThemeManual } = useTheme();
+  
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  
-  // State for Hover Effect on Logo
   const [isLogoHovered, setIsLogoHovered] = useState(false);
+
+  // 🔥 FORCE DARK MODE ON MOUNT
+  // Isse Login page hamesha Dark dikhega (Premium look)
+  useEffect(() => {
+    setThemeManual('dark');
+  }, []);
 
   const handleMicrosoftLogin = async () => {
     try {

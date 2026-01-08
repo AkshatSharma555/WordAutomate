@@ -37,7 +37,7 @@ const userSchema = new mongoose.Schema({
         select: false 
     },
     
-    theme: { type: String, default: 'light', enum: ['light', 'dark'] }
+    theme: { type: String, default: 'dark', enum: ['light', 'dark'] }
 }, { timestamps: true }); 
 
 const userModel = mongoose.models.user || mongoose.model('user', userSchema);
