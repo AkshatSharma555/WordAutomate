@@ -7,7 +7,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
 
-// 👇 NEW PAGES IMPORT
+// NEW PAGES IMPORT
 import Generate from './pages/Generate';
 import Workspace from './pages/Workspace';
 import Explore from './pages/Explore';
@@ -17,11 +17,17 @@ import Friends from './pages/Friends';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext'; 
 
+// 👇 NEW: Import RouteTracker
+import RouteTracker from './components/common/RouteTracker';
+
 const App = () => {
   return (
     <AuthProvider>
       <ThemeProvider>
         <Router>
+           {/* 👇 NEW: Tracker ko Router ke andar lagaya hai */}
+           <RouteTracker />
+
           <Routes>
             {/* Public & Auth Routes */}
             <Route path="/" element={<Landing />} />
@@ -31,7 +37,7 @@ const App = () => {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/settings" element={<Settings />} />
 
-            {/* 👇 Feature Routes */}
+            {/* Feature Routes */}
             <Route path="/generate" element={<Generate />} />
             <Route path="/workspace" element={<Workspace />} />
             <Route path="/explore" element={<Explore />} />
