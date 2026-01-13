@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Inbox, Send } from 'lucide-react';
 
 const WorkspaceTabs = ({ activeTab, setActiveTab }) => {
+  
   const tabs = [
     { 
       id: 'received', 

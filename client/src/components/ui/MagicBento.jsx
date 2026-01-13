@@ -171,11 +171,20 @@ const MagicBento = ({
             const isGenerate = item.id === 'generate';
             const isWorkspace = item.id === 'workspace';
 
+            // 🔥 CRITICAL FIX: Determine Wrapper Type (Link vs Div)
+            // Agar onClick hai toh 'div' banao, nahi toh 'Link'
+            const Wrapper = item.onClick ? 'div' : Link;
+            
+            // 🔥 CRITICAL FIX: Props assignment
+            const wrapperProps = item.onClick 
+                ? { onClick: item.onClick, role: "button" } 
+                : { to: item.href };
+
             return (
-              <Link 
+              <Wrapper
                 key={index}
-                to={item.href} 
-                className={`block relative group h-full w-full ${gridClass}`}
+                {...wrapperProps} // Spread props (onClick or to)
+                className={`block relative group h-full w-full ${gridClass} cursor-pointer`}
               >
                 <ParticleCard
                     className={cn(
@@ -222,7 +231,7 @@ const MagicBento = ({
                         </p>
                     </div>
                 </ParticleCard>
-              </Link>
+              </Wrapper>
             );
           })}
         </div>

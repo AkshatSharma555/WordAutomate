@@ -1,4 +1,4 @@
-import React, { useState } from 'react'; // useEffect hata diya (not needed)
+import React, { useState } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
@@ -10,11 +10,10 @@ import StepAcademic from './onboarding/StepAcademic';
 import StepGuide from './onboarding/StepGuide';
 import StepFeatures from './onboarding/StepFeatures';
 
-const OnboardingModal = () => {
-    const { currentUser, setUser } = useAuth();
+const OnboardingModal = ({ onSkip }) => { 
+    // 🔥 FIX: Destructure 'setCurrentUser' instead of 'setUser'
+    const { currentUser, setCurrentUser } = useAuth();
     
-    // Theme logic removed from here (It's now handled globally via Context)
-
     const searchParams = new URLSearchParams(window.location.search);
     const isTestMode = searchParams.get('test_mode') === 'true';
 
@@ -24,7 +23,7 @@ const OnboardingModal = () => {
     const [errors, setErrors] = useState({});
     
     const [formData, setFormData] = useState({
-        name: currentUser?.name || currentUser?.microsoftOriginalName || "",
+        name: "", 
         prn: currentUser?.prn || "",
         branch: currentUser?.branch || "",
         year: currentUser?.year || ""
@@ -60,14 +59,19 @@ const OnboardingModal = () => {
 
     const handleSubmit = async () => {
         if (isSubmitting) return; 
+        
+        if (errors.name || errors.prn || !formData.name || !formData.prn) {
+            toast.error("Please fix errors before submitting.");
+            return;
+        }
+
         setIsSubmitting(true);
 
-        // Test Mode
         if (isTestMode) {
             setTimeout(() => {
                 toast.success("Test Mode: Setup Complete!");
-                // 🔥 Remove 'theme: light', let it default to dark
-                if (setUser) setUser({ ...currentUser, ...formData, isAccountVerified: true });
+                // FIX HERE TOO
+                if (setCurrentUser) setCurrentUser({ ...currentUser, ...formData, isAccountVerified: true });
                 setIsSubmitting(false);
             }, 1000);
             return;
@@ -81,39 +85,43 @@ const OnboardingModal = () => {
                 formData,
                 { 
                     withCredentials: true,
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 'Content-Type': 'application/json' },
+                    timeout: 15000 
                 }
             );
 
             if (data.success) {
-                setIsExiting(true); 
-
                 const updatedUser = {
                     ...currentUser,
-                    name: data.name || formData.name,
-                    prn: data.prn || formData.prn,
-                    branch: data.branch || formData.branch,
-                    year: data.year || formData.year,
+                    ...formData, 
+                    name: data.name || formData.name, 
                     isAccountVerified: true, 
-                    // 🔥 Note: Theme is NOT passed here. 
-                    // Since DB defaults to 'dark', Context stays 'dark'. No flicker.
                 };
+                
+                // 🔥 CRITICAL FIX: Using the correct function name 'setCurrentUser'
+                if (typeof setCurrentUser === 'function') {
+                    setCurrentUser(updatedUser);
+                } else {
+                    console.error("AuthContext: setCurrentUser function not found!");
+                }
 
+                toast.success("Dashboard Unlocked! 🚀");
+
+                // Tiny delay for visual smoothness
                 setTimeout(() => {
-                    toast.success("All Set! Welcome Aboard 🚀");
-                    if (typeof setUser === 'function') {
-                        setUser(updatedUser);
-                    } else {
-                        window.location.reload();
-                    }
-                }, 600); 
+                    setIsExiting(true); 
+                }, 100); 
+
             } else {
                 throw new Error(data.message || "Update failed");
             }
 
         } catch (error) {
             console.error("Onboarding Update Failed:", error);
-            const errorMsg = error.response?.data?.message || error.message || "Failed to update profile.";
+            let errorMsg = "Failed to update profile.";
+            if (error.code === 'ECONNABORTED') errorMsg = "Server took too long.";
+            else if (error.response) errorMsg = error.response.data?.message || "Server Error";
+            
             toast.error(errorMsg);
             setIsSubmitting(false);
             setIsExiting(false);
@@ -123,9 +131,9 @@ const OnboardingModal = () => {
     const renderStep = () => {
         switch(step) {
             case 1:
-                return <StepIdentity formData={formData} errors={errors} onChange={handleChange} onNext={() => setStep(2)} />;
+                return <StepIdentity formData={formData} errors={errors} onChange={handleChange} onNext={() => setStep(2)} onSkip={onSkip} />;
             case 2:
-                return <StepAcademic formData={formData} errors={errors} onChange={handleChange} onNext={() => setStep(3)} />;
+                return <StepAcademic formData={formData} errors={errors} onChange={handleChange} onNext={() => setStep(3)} onSkip={onSkip} />;
             case 3:
                 return <StepGuide onNext={() => setStep(4)} userName={formData.name} />;
             case 4:
@@ -145,15 +153,17 @@ const OnboardingModal = () => {
     };
 
     return (
-        <WizardLayout 
-            title={getTitles().title} 
-            subtitle={getTitles().subtitle} 
-            currentStep={step} 
-            totalSteps={4} 
-            isExiting={isExiting}
-        >
-            {renderStep()}
-        </WizardLayout>
+        <div className="relative z-50">
+            <WizardLayout 
+                title={getTitles().title} 
+                subtitle={getTitles().subtitle} 
+                currentStep={step} 
+                totalSteps={4} 
+                isExiting={isExiting}
+            >
+                {renderStep()}
+            </WizardLayout>
+        </div>
     );
 };
 

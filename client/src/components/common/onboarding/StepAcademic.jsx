@@ -1,27 +1,27 @@
 import React from 'react';
 import { Users, BookOpen, CalendarDays } from 'lucide-react';
 
-const StepAcademic = ({ formData, errors, onChange, onNext }) => {
+// 1. Receive 'onSkip' prop
+const StepAcademic = ({ formData, errors, onChange, onNext, onSkip }) => {
 
   const isFormValid = formData.branch && formData.year;
   
-  // Data Arrays
   const branches = ["ECS", "EXTC", "IT", "AIDS", "AIML", "IOT", "CE", "ME"];
   const years = ["FE", "SE", "TE", "BE"];
 
-  // Helper for selection style
   const getOptionStyle = (isSelected) => `
     relative flex items-center justify-center py-2.5 px-3 rounded-xl text-xs font-bold transition-all duration-300 border cursor-pointer
     ${isSelected 
       ? "bg-[#1AA3A3] text-white border-[#1AA3A3] shadow-lg shadow-[#1AA3A3]/25 scale-[1.02]" 
-      : "bg-white dark:bg-[#1a1a1a] text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-[#1AA3A3]/50 hover:bg-[#1AA3A3]/5 dark:hover:bg-[#1AA3A3]/10"
+      : "bg-white dark:bg-[#1a1a1a] text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-[#1AA3A3]/50 hover:bg-[#1AA3A3]/5 dark:hover:bg-[#1AA3A3]/10"
     }
   `;
 
   return (
-    <div className="flex flex-col h-full gap-6">
+    // ✅ FIX: Removed 'h-full'. Using standard flow.
+    <div className="flex flex-col gap-5 pb-2">
         
-        {/* --- INFO NOTE (Blue Theme) --- */}
+        {/* Info Note */}
         <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/30 p-3.5 rounded-2xl flex gap-3 shrink-0">
             <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-full h-fit text-blue-600 dark:text-blue-400 shrink-0">
                 <Users size={16} />
@@ -32,9 +32,10 @@ const StepAcademic = ({ formData, errors, onChange, onNext }) => {
             </div>
         </div>
 
-        <div className="flex-1 space-y-6">
+        {/* Content Area */}
+        <div className="space-y-6 px-1">
             
-            {/* --- BRANCH SELECTION (Grid Layout) --- */}
+            {/* Branch Selection */}
             <div className="space-y-2.5">
                 <div className="flex items-center gap-2 px-1">
                     <BookOpen size={14} className="text-[#1AA3A3]" />
@@ -52,10 +53,10 @@ const StepAcademic = ({ formData, errors, onChange, onNext }) => {
                         </div>
                     ))}
                 </div>
-                {errors.branch && <p className="text-[10px] text-[#F54A00] font-bold px-1 animate-pulse">• Please select a branch</p>}
+                {errors.branch && <p className="text-[10px] text-red-500 font-bold px-1 animate-pulse">• Please select a branch</p>}
             </div>
 
-            {/* --- YEAR SELECTION (Flex Layout) --- */}
+            {/* Year Selection */}
             <div className="space-y-2.5">
                 <div className="flex items-center gap-2 px-1">
                     <CalendarDays size={14} className="text-[#1AA3A3]" />
@@ -73,13 +74,13 @@ const StepAcademic = ({ formData, errors, onChange, onNext }) => {
                         </div>
                     ))}
                 </div>
-                {errors.year && <p className="text-[10px] text-[#F54A00] font-bold px-1 animate-pulse">• Please select your year</p>}
+                {errors.year && <p className="text-[10px] text-red-500 font-bold px-1 animate-pulse">• Please select your year</p>}
             </div>
 
         </div>
 
-        {/* --- ACTION BUTTON --- */}
-        <div className="pt-2 mt-auto">
+        {/* --- ACTIONS --- */}
+        <div className="pt-2 flex flex-col gap-3">
             <button 
                 onClick={onNext}
                 disabled={!isFormValid}
@@ -91,6 +92,17 @@ const StepAcademic = ({ formData, errors, onChange, onNext }) => {
             >
                 Next: Instructions
             </button>
+
+            {/* 🔥 Skip Button: Always Visible */}
+            {onSkip && (
+                <button 
+                    type="button"
+                    onClick={onSkip}
+                    className="w-full py-2 text-xs font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                >
+                    I'll do this later (Skip)
+                </button>
+            )}
         </div>
     </div>
   );
