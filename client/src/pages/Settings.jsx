@@ -10,6 +10,7 @@ import PersonalInfoSection from '../components/settings/PersonalInfoSection';
 import ThemeToggle from '../components/common/ThemeToggle'; 
 import Toast from '../components/common/Toast'; 
 import { Loader2, Settings as SettingsIcon, Moon, Sun, Save, ArrowLeft } from 'lucide-react';
+import SessionErrorModal from '../components/common/SessionErrorModal'; 
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const USER_URL = `${API_BASE_URL}/user`;
@@ -19,7 +20,6 @@ const Settings = () => {
   const { theme, toggleTheme } = useTheme(); 
   const navigate = useNavigate();
 
-  // Local Form States
   const [name, setName] = useState("");
   const [nameError, setNameError] = useState("");
   const [prn, setPrn] = useState("");
@@ -27,7 +27,6 @@ const Settings = () => {
   const [branch, setBranch] = useState("");
   const [year, setYear] = useState("");
 
-  // Track DB Values for Personal Info
   const [dbName, setDbName] = useState('');
   const [dbPrn, setDbPrn] = useState('');
   const [dbBranch, setDbBranch] = useState('');
@@ -36,8 +35,10 @@ const Settings = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [isFetching, setIsFetching] = useState(true); 
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
+  
+  // 🔥 Modal State
+  const [showSessionError, setShowSessionError] = useState(false);
 
-  // 1. FETCH DATA
   useEffect(() => {
     const fetchFreshUserData = async () => {
         try {
@@ -45,17 +46,8 @@ const Settings = () => {
             if (data.success && data.userData) {
                 const user = data.userData;
                 setCurrentUser(user);
-                
-                // Initialize States
-                setDbName(user.name || "");
-                setDbPrn(user.prn || "");
-                setDbBranch(user.branch || "");
-                setDbYear(user.year || "");
-                
-                setName(user.name || "");
-                setPrn(user.prn || "");
-                setBranch(user.branch || "");
-                setYear(user.year || "");
+                setDbName(user.name || ""); setDbPrn(user.prn || ""); setDbBranch(user.branch || ""); setDbYear(user.year || "");
+                setName(user.name || ""); setPrn(user.prn || ""); setBranch(user.branch || ""); setYear(user.year || "");
             }
         } catch (error) {
             console.error("Failed to fetch settings:", error);
@@ -63,20 +55,15 @@ const Settings = () => {
             setIsFetching(false);
         }
     };
-
     if (!loading) {
-        if (!currentUser) navigate('/login');
-        else fetchFreshUserData();
+        if (!currentUser) navigate('/login'); else fetchFreshUserData();
     }
   }, [loading, navigate]); 
 
   const handleLogout = async () => { await logout(); navigate('/'); };
 
-  // 🔥 LIVE COMPARISON LOGIC
-  // Compare 'Current UI Theme' with 'User Object Theme'
   const currentDbTheme = currentUser?.theme || 'dark';
   const hasThemeChanged = theme !== currentDbTheme;
-  
   const hasPersonalInfoChanged = (name.trim() !== dbName.trim()) || (prn.trim() !== dbPrn.trim()) || (branch !== dbBranch) || (year !== dbYear);
   const hasChanges = hasThemeChanged || hasPersonalInfoChanged;
 
@@ -102,6 +89,10 @@ const Settings = () => {
                     updates = { ...updates, name: data.name, prn: data.prn, branch: data.branch, year: data.year };
                     setDbName(data.name); setDbPrn(data.prn); setDbBranch(data.branch); setDbYear(data.year);
                     somethingSaved = true;
+                } else {
+                    // 🔥 CRITICAL FIX: Explicitly throw if success is false
+                    // This forces the code into the 'catch' block to show the Modal
+                    throw new Error(data.message || "Failed to update profile.");
                 }
             }
         }
@@ -110,23 +101,39 @@ const Settings = () => {
         if (hasThemeChanged && !hasError) {
             const { data } = await axios.put(`${USER_URL}/update-theme`, { theme }, { withCredentials: true });
             if (data.success) { 
-                // 🔥 Critical: Update the user object theme to match current UI theme
                 updates.theme = theme; 
                 somethingSaved = true; 
+            } else {
+                throw new Error("Failed to update theme.");
             }
         }
         
         if (somethingSaved) {
-            // Update Context: This will align currentUser.theme with the local 'theme' state
-            // preventing the button from reappearing or the theme from reverting
             setCurrentUser(updates);
             setToast({ show: true, message: "Changes saved successfully!", type: 'success' });
-        } else if (!hasError) {
-             setToast({ show: true, message: "No changes detected.", type: 'info' });
+        } else if (!hasError && (hasPersonalInfoChanged || hasThemeChanged)) {
+             // Fallback: If we thought there were changes but API didn't confirm success
+             throw new Error("Validation failed.");
         }
     } catch (error) { 
-        setToast({ show: true, message: "Failed to save changes.", type: 'error' }); 
-        console.error(error);
+        console.error("Settings Update Failed:", error);
+        
+        // 🔥 ROBUST ERROR CATCHING (Status Code OR Message)
+        const isSessionError = 
+            error.response?.status === 401 || 
+            error.code === "ERR_NETWORK" ||
+            (error.message && (
+                error.message.includes("Not Authorized") || 
+                error.message.includes("Login Again") ||
+                error.message.includes("jwt expired")
+            ));
+
+        if (isSessionError) {
+            setShowSessionError(true); // ✅ Show Red Modal
+        } else {
+            let msg = error.response?.data?.message || error.message || "Failed to save changes.";
+            setToast({ show: true, message: msg, type: 'error' }); 
+        }
     } finally { 
         setIsUploading(false); 
     }
@@ -136,7 +143,17 @@ const Settings = () => {
 
   return (
     <div className="min-h-screen w-full bg-[#F3F2ED] dark:bg-[#050505] relative overflow-hidden pb-32 transition-colors duration-300 font-sans">
-      {/* Background Ambience */}
+      
+      {/* 🔥 Session Error Modal */}
+      <SessionErrorModal 
+            isOpen={showSessionError} 
+            onClose={() => setShowSessionError(false)}
+            onRetry={() => {
+                setShowSessionError(false);
+                handleSaveChanges(); 
+            }} 
+      />
+
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
           <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] rounded-full blur-[120px] bg-[#F54A00] opacity-5 dark:opacity-[0.02]" />
           <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] rounded-full blur-[120px] bg-[#1AA3A3] opacity-5 dark:opacity-[0.02]" />
