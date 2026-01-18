@@ -8,6 +8,7 @@ import authRouter from "./routes/authRoutes.js";
 import userRouter from "./routes/userRoutes.js";
 import docRouter from "./routes/docRoutes.js";
 import workspaceRouter from "./routes/workspaceRoutes.js";
+import adminRouter from "./routes/adminRoutes.js";
 
 const app = express();
 const port = process.env.PORT || 5000; 
@@ -47,6 +48,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/document", docRouter);
 app.use("/api/workspace", workspaceRouter);
+app.use("/api/admin", adminRouter);
 
 // Server Start
 app.listen(port, () => console.log(`Server started on PORT: ${port}`));
