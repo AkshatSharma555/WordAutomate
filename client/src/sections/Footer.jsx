@@ -1,18 +1,23 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom'; 
+import { ShieldCheck } from 'lucide-react'; // 👈 Using ShieldCheck for "Verified" feel
 import { footerLinks } from '../config/footer';
 import ThreeDLogo from '../components/common/ThreeDLogo';
 import ThemeToggle from '../components/common/ThemeToggle';
 
 const Footer = ({ className, isDark, toggleTheme }) => {
   const [isLogoHovered, setIsLogoHovered] = useState(false);
+  const currentYear = new Date().getFullYear();
 
   return (
-    <footer className={`pt-20 pb-10 px-6 md:px-12 lg:px-20 border-t transition-colors duration-500 ${
+    <footer className={`pt-20 pb-6 px-6 md:px-12 lg:px-20 border-t transition-colors duration-500 ${
         isDark ? "bg-black border-white/10" : "bg-[#F3F2ED] border-slate-200"
     }`}>
       
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-10 md:gap-20">
+      {/* --- Main Content --- */}
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-10 md:gap-20 mb-16">
         
+        {/* Brand Section */}
         <div 
             className="md:w-1/3 space-y-4"
             onMouseEnter={() => setIsLogoHovered(true)} 
@@ -37,6 +42,7 @@ const Footer = ({ className, isDark, toggleTheme }) => {
           </div>
         </div>
 
+        {/* Links Grid */}
         <div className="md:w-2/3 grid grid-cols-2 md:grid-cols-3 gap-8">
           {footerLinks.map((section, index) => (
             <div key={index}>
@@ -54,6 +60,33 @@ const Footer = ({ className, isDark, toggleTheme }) => {
           ))}
         </div>
       </div>
+
+      {/* --- 👇 COPYRIGHT & ADMIN BAR --- */}
+      <div className={`max-w-7xl mx-auto pt-6 border-t flex flex-col-reverse md:flex-row justify-between items-center gap-4 transition-colors duration-500 ${
+          isDark ? "border-white/5" : "border-slate-200"
+      }`}>
+          
+          {/* Copyright Text */}
+          <p className={`text-sm font-medium ${isDark ? "text-slate-600" : "text-slate-500"}`}>
+             &copy; {currentYear} WordAutomate. All rights reserved.
+          </p>
+
+          {/* 🔥 PREMIUM ADMIN BADGE (Visible & Stylish) */}
+          <Link 
+            to="/admin-secret-access"
+            className={`
+                flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-wide transition-all duration-300 border
+                ${isDark 
+                    ? "bg-white/5 text-slate-400 border-white/5 hover:bg-[#F54A00]/10 hover:text-[#F54A00] hover:border-[#F54A00]/20" 
+                    : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-[#1AA3A3]/10 hover:text-[#1AA3A3] hover:border-[#1AA3A3]/20"
+                }
+            `}
+          >
+             <ShieldCheck size={14} />
+             <span>ADMIN PORTAL</span>
+          </Link>
+      </div>
+
     </footer>
   );
 };
