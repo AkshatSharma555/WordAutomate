@@ -16,6 +16,7 @@ import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminVerify from './pages/admin/AdminVerify'; 
 import AdminReset from './pages/admin/AdminReset';
+import AdminUsers from './pages/admin/AdminUsers';
 
 // Context Providers
 import { AuthProvider } from './context/AuthContext';
@@ -59,6 +60,7 @@ const App = () => {
               <Route path="/admin/verify" element={<AdminVerify />} />
               <Route path="/admin/reset-password" element={<AdminReset />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
 
             </Routes>
           </Router>

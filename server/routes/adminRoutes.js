@@ -8,7 +8,11 @@ import {
     isAuthenticated, 
     sendResetOtp, 
     resetPassword,
-    getAdminData 
+    getAdminData ,
+    getAllUsers ,
+    updateUser,
+    deleteUser,
+    getDashboardStats
 } from '../controllers/adminController.js';
 import adminAuth from '../middleware/adminAuth.js';
 
@@ -24,7 +28,11 @@ router.post('/logout', logoutAdmin); // Logout usually doesn't strictly need aut
 // Protected Routes (Require Login)
 router.post('/send-verify-otp', adminAuth, sendVerifyOtp);
 router.post('/verify-account', adminAuth, verifyEmail);
-router.get('/is-auth', adminAuth, isAuthenticated); // Used by AdminContext to check session
-router.get('/data', adminAuth, getAdminData);       // Used by AdminContext to get profile
+router.get('/is-auth', adminAuth, isAuthenticated); 
+router.get('/data', adminAuth, getAdminData); 
+router.get('/users', adminAuth, getAllUsers);     
+router.put('/users/:id', adminAuth, updateUser);
+router.delete('/users/:id', adminAuth, deleteUser);
+router.get('/dashboard-stats', adminAuth, getDashboardStats);
 
 export default router;

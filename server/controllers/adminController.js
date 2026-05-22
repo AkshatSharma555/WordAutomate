@@ -2,9 +2,12 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import Admin from "../models/adminModel.js";
 import transporter from "../config/nodemailer.js";
+import User from "../models/userModel.js";
+import Document from "../models/documentModel.js";
+import FriendRequest from "../models/friendRequestModel.js";
 import { EMAIL_VERIFY_TEMPLATE, PASSWORD_RESET_TEMPLATE } from "../config/emailTemplate.js";
 
-// 🔥 Register Admin
+
 export const registerAdmin = async (req, res) => {
   const { name, email, password, secretKey } = req.body;
 
@@ -51,7 +54,6 @@ export const registerAdmin = async (req, res) => {
   }
 };
 
-// 🔥 Login Admin
 export const loginAdmin = async (req, res) => {
   const { email, password } = req.body;
 
@@ -85,7 +87,6 @@ export const loginAdmin = async (req, res) => {
   }
 };
 
-// 🔥 Logout Admin
 export const logoutAdmin = async (req, res) => {
   try {
     res.clearCookie("token", {
@@ -100,7 +101,6 @@ export const logoutAdmin = async (req, res) => {
   }
 };
 
-// 🔥 Send Verification OTP
 export const sendVerifyOtp = async (req, res) => {
   try {
     const { adminId } = req.body;
@@ -129,7 +129,6 @@ export const sendVerifyOtp = async (req, res) => {
   }
 };
 
-// 🔥 Verify Email
 export const verifyEmail = async (req, res) => {
   try {
     const { adminId, otp } = req.body;
@@ -162,7 +161,6 @@ export const verifyEmail = async (req, res) => {
   }
 };
 
-// 🔥 Check Auth Status
 export const isAuthenticated = async (req, res) => {
   try {
     return res.json({ success: true });
@@ -171,7 +169,6 @@ export const isAuthenticated = async (req, res) => {
   }
 };
 
-// 🔥 Send Password Reset OTP
 export const sendResetOtp = async (req, res) => {
   const { email } = req.body;
   if (!email) {
@@ -203,7 +200,6 @@ export const sendResetOtp = async (req, res) => {
   }
 };
 
-// 🔥 Reset Password
 export const resetPassword = async (req, res) => {
   const { email, otp, newPassword } = req.body;
 
@@ -237,7 +233,6 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-
 export const getAdminData = async (req, res) => {
   try {
     const { adminId } = req.body;
@@ -258,4 +253,96 @@ export const getAdminData = async (req, res) => {
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
+};
+
+export const getAllUsers = async (req, res) => {
+  try {
+    // Database se saare users fetch karo, par password mat bhejo
+    const users = await User.find({}).select("-password");
+    
+    if (!users) {
+      return res.json({ success: false, message: "No users found" });
+    }
+
+    res.json({
+      success: true,
+      users: users,
+      totalUsers: users.length
+    });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+};
+
+export const updateUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, prn, branch, year } = req.body;
+
+        const updatedUser = await User.findByIdAndUpdate(
+            id,
+            { name, prn, branch, year },
+            { new: true, runValidators: true }
+        ).select("-password -microsoftAccessToken");
+
+        if (!updatedUser) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
+        res.json({ 
+            success: true, 
+            message: "Student details updated successfully", 
+            user: updatedUser 
+        });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+};
+
+export const deleteUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const deletedUser = await User.findByIdAndDelete(id);
+
+        if (!deletedUser) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
+        res.json({ success: true, message: "Student deleted permanently" });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+};
+
+export const getDashboardStats = async (req, res) => {
+    try {
+        const totalUsers = await User.countDocuments();
+        const totalDocs = await Document.countDocuments();
+        const totalConnections = await FriendRequest.countDocuments({ status: 'accepted' });
+
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const todayDocs = await Document.countDocuments({
+            createdAt: {
+                $gte: startOfDay,
+                $lte: endOfDay
+            }
+        });
+
+        res.json({
+            success: true,
+            stats: {
+                totalUsers,
+                totalDocs,
+                totalConnections,
+                todayDocs
+            }
+        });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
 };
