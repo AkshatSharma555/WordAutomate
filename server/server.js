@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import "dotenv/config";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";           // New: Security ke liye
+import compression from "compression"; // New: Speed ke liye
 
 import connectDB from "./config/mongodb.js";
 import authRouter from "./routes/authRoutes.js";
@@ -16,11 +18,15 @@ const port = process.env.PORT || 5000;
 // Database Connection
 connectDB();
 
-// 👇 UPDATED: Ab yeh Localhost aur Production URL dono ko allow karega
+// 👇 UPDATED: Best Practices Middleware (Security & Speed)
+app.use(helmet());      // Hackers se protect karega
+app.use(compression()); // Responses ko fast banayega
+
+// 👇 Allowed Origins List
 const allowedOrigins = [
     "http://localhost:5173",
-    "https://word-automate.vercel.app",   // Without slash
-    "https://word-automate.vercel.app/"   // With slash
+    "https://word-automate.vercel.app",   // Tera Live Frontend
+    "https://word-automate.vercel.app/" 
 ];
 
 // Middleware
@@ -43,7 +49,9 @@ app.use(cors({
 }));
 
 // API Endpoints
-app.get("/", (req, res) => res.send("API Working on Port 5000"));
+// 👇 Naya Message taaki pata chale update ho gaya
+app.get("/", (req, res) => res.send("API Working Fast & Secure via CI/CD Pipeline!"));
+
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/document", docRouter);
