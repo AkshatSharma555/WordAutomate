@@ -31,11 +31,10 @@ export const getUserData = async (req, res) => {
 // UPDATE THEME
 export const updateUserTheme = async (req, res) => {
     try {
-        // Middleware se userId lena (Support both styles)
-        const userId = req.body.userId || req.userId;
+        // 🔥 FIX: Directly use req.userId
+        const userId = req.userId;
         const { theme } = req.body;
 
-        // 1. Security Check: Validation
         if (!theme || !['light', 'dark'].includes(theme)) {
             return res.status(400).json({ 
                 success: false, 
@@ -43,11 +42,10 @@ export const updateUserTheme = async (req, res) => {
             });
         }
 
-        // 2. Database Update
         const user = await userModel.findByIdAndUpdate(
             userId,
             { theme: theme },
-            { new: true } // 🔥 Returns the updated document immediately
+            { new: true } 
         );
 
         if (!user) {
@@ -61,19 +59,18 @@ export const updateUserTheme = async (req, res) => {
         return res.status(500).json({ success: false, message: error.message });
     }
 };
+
 // UPDATE PERSONAL INFO (ONBOARDING)
 export const updatePersonalInfo = async (req, res) => {
     try {
         const { name, prn, branch, year } = req.body;
         const updateData = {};
 
-        // Data Validation & Cleanup
         if (name && name.trim().length >= 2) updateData.name = name.trim();
         if (prn) updateData.prn = prn.toUpperCase().trim();
         if (branch) updateData.branch = branch;
         if (year) updateData.year = year;
 
-        // Mark account as verified to complete onboarding
         updateData.isAccountVerified = true;
 
         const user = await userModel.findByIdAndUpdate(
@@ -105,7 +102,6 @@ export const updatePersonalInfo = async (req, res) => {
 export const getAllStudents = async (req, res) => {
     try {
         const { branch, year, search } = req.query;
-        // Use req.userId from middleware for consistency and security
         const currentUserId = req.userId;
 
         let query = { _id: { $ne: currentUserId } };
@@ -121,7 +117,6 @@ export const getAllStudents = async (req, res) => {
                 const status = await getFriendshipStatus(currentUserId, user._id);
                 return { ...user.toObject(), friendStatus: status };
             } catch (e) {
-                // Fallback if friendship status check fails
                 return { ...user.toObject(), friendStatus: 'none' };
             }
         }));

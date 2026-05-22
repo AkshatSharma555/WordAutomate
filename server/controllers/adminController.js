@@ -75,7 +75,7 @@ export const loginAdmin = async (req, res) => {
 
     const token = jwt.sign({ id: admin._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
-    res.cookie("token", token, {
+    res.cookie("adminToken", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
@@ -90,7 +90,7 @@ export const loginAdmin = async (req, res) => {
 
 export const logoutAdmin = async (req, res) => {
   try {
-    res.clearCookie("token", {
+    res.clearCookie("adminToken", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",

@@ -6,7 +6,8 @@ export const sendFriendRequest = async (req, res) => {
   try {
     const { receiverId } = req.body;
     
-    const senderId = req.body.userId || req.user?._id;
+    // Using strict userId from middleware
+    const senderId = req.userId;
 
     if (!senderId) {
         return res.json({ success: false, message: "User ID missing from request." });
@@ -16,7 +17,6 @@ export const sendFriendRequest = async (req, res) => {
       return res.json({ success: false, message: "You cannot send a request to yourself." });
     }
 
-    // Check karo pehle se request hai ya nahi
     const existingRequest = await friendRequestModel.findOne({
       $or: [
         { sender: senderId, receiver: receiverId },
@@ -47,9 +47,9 @@ export const sendFriendRequest = async (req, res) => {
 // 2. Request Accept/Reject Karo
 export const respondToRequest = async (req, res) => {
   try {
-    const { requestId, action } = req.body; // action: 'accept' or 'reject'
+    const { requestId, action } = req.body; 
     
-    const userId = req.body.userId || req.user?._id;
+    const userId = req.userId;
 
     if (!userId) {
         return res.json({ success: false, message: "User ID missing." });
@@ -61,7 +61,6 @@ export const respondToRequest = async (req, res) => {
       return res.json({ success: false, message: "Request not found." });
     }
 
-    // Check karo ki request issi user ke liye thi na?
     if (request.receiver.toString() !== userId.toString()) {
       return res.json({ success: false, message: "Unauthorized action." });
     }
@@ -83,29 +82,29 @@ export const respondToRequest = async (req, res) => {
 // 3. Mere Saare Friends Lao (For 'Friends' Page & PDF Generation List)
 export const getMyFriends = async (req, res) => {
   try {
-    const userId = req.body.userId || req.user?._id;
+    const userId = req.userId;
 
     if (!userId) {
         return res.json({ success: false, message: "User ID missing." });
     }
 
-    // Wo saari requests dhundo jo 'accepted' hain aur main usme shamil hu
     const connections = await friendRequestModel.find({
       $or: [{ sender: userId }, { receiver: userId }],
       status: 'accepted'
     })
-    // 👇 FIX: Yahan 'prn' add kiya hai. Pehle ye missing tha!
     .populate('sender', 'name email profilePicture branch year prn')
     .populate('receiver', 'name email profilePicture branch year prn');
 
-    // List ko clean karo (sirf dost ka data chahiye, mera nahi)
+    // 🔥 Ghost connections (deleted users) handling
     const friends = connections.map(conn => {
+      if (!conn.sender || !conn.receiver) return null;
+
       if (conn.sender._id.toString() === userId.toString()) {
         return conn.receiver;
       } else {
         return conn.sender;
       }
-    });
+    }).filter(friend => friend !== null); // Clean list jisme koi null na ho
 
     res.json({ success: true, friends });
 
@@ -117,21 +116,22 @@ export const getMyFriends = async (req, res) => {
 // 4. Pending Requests Lao (For Notifications)
 export const getPendingRequests = async (req, res) => {
   try {
-    const userId = req.body.userId || req.user?._id;
+    const userId = req.userId;
 
     if (!userId) {
         return res.json({ success: false, message: "User ID missing." });
     }
 
-    // Sirf wo requests jahan main receiver hu aur status pending hai
     const requests = await friendRequestModel.find({
       receiver: userId,
       status: 'pending'
     })
-    // 👇 FIX: Yahan bhi 'prn' add kar diya (future proofing)
     .populate('sender', 'name email profilePicture branch year prn');
 
-    res.json({ success: true, requests });
+    // 🔥 Ghost request handling
+    const validRequests = requests.filter(req => req.sender !== null);
+
+    res.json({ success: true, requests: validRequests });
 
   } catch (error) {
     res.json({ success: false, message: error.message });
@@ -139,6 +139,7 @@ export const getPendingRequests = async (req, res) => {
 };
 
 // 5. Check Friendship Status (For 'Explore' Cards UI)
+// 🔥 THIS WAS THE MISSING FUNCTION CAUSING THE CRASH
 export const getFriendshipStatus = async (currentUserId, otherUserId) => {
     const conn = await friendRequestModel.findOne({
         $or: [
@@ -157,15 +158,14 @@ export const getFriendshipStatus = async (currentUserId, otherUserId) => {
 export const withdrawRequest = async (req, res) => {
   try {
     const { receiverId } = req.body;
-    const senderId = req.body.userId || req.user?._id;
+    const senderId = req.userId;
 
     if (!senderId) return res.json({ success: false, message: "User ID missing." });
 
-    // Database se request delete karo
     const deletedRequest = await friendRequestModel.findOneAndDelete({
       sender: senderId,
       receiver: receiverId,
-      status: 'pending' // Sirf pending request hi delete honi chahiye
+      status: 'pending' 
     });
 
     if (deletedRequest) {
@@ -183,7 +183,7 @@ export const withdrawRequest = async (req, res) => {
 export const removeFriend = async (req, res) => {
   try {
     const { targetUserId } = req.body;
-    const currentUserId = req.body.userId || req.user?._id;
+    const currentUserId = req.userId;
 
     const deleted = await friendRequestModel.findOneAndDelete({
       $or: [

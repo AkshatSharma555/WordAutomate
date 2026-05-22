@@ -4,41 +4,35 @@ import axios from "axios";
 export const AdminContext = createContext();
 
 export const AdminContextProvider = (props) => {
-  axios.defaults.withCredentials = true;
-
-  // .env se URL aa raha hai: "http://localhost:5000/api"
   const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
   const [isAdminLoggedin, setIsAdminLoggedin] = useState(false);
   const [adminData, setAdminData] = useState(null);
 
-  // 🔥 1. Check Auth Status
   const getAdminAuthState = async () => {
     try {
-      // FIX: '/api' hata diya kyunki backendUrl mein already hai
-      // Result: http://localhost:5000/api/admin/is-auth
-      const { data } = await axios.get(backendUrl + "/admin/is-auth");
-      if (data.success) {
+      // Explicitly passing withCredentials here for safety
+      const { data } = await axios.get(backendUrl + "/admin/is-auth", { withCredentials: true });
+      if (data && data.success) {
         setIsAdminLoggedin(true);
         getAdminData();
+      } else {
+        setIsAdminLoggedin(false);
       }
     } catch (error) {
-      console.error("Admin Auth Check Error:", error);
+      // completely silenced
+      setIsAdminLoggedin(false);
     }
   };
 
-  // 🔥 2. Fetch Admin Data
   const getAdminData = async () => {
     try {
-      // FIX: '/api' hata diya
-      const { data } = await axios.get(backendUrl + "/admin/data");
-      if (data.success) {
+      const { data } = await axios.get(backendUrl + "/admin/data", { withCredentials: true });
+      if (data && data.success) {
         setAdminData(data.adminData);
-      } else {
-        console.error("Failed to fetch admin data:", data.message);
       }
     } catch (error) {
-      console.error("Admin Data Fetch Error:", error);
+      // completely silenced
     }
   };
 
