@@ -70,9 +70,10 @@ const AdminDashboard = () => {
           <Link to="/admin/users" className="px-4 py-3 text-gray-400 hover:text-white hover:bg-[#111] rounded-xl flex items-center gap-3 font-medium transition-colors">
             <Users size={20} /> User Management
           </Link>
-          <div className="px-4 py-3 text-gray-400 hover:text-white hover:bg-[#111] rounded-xl flex items-center gap-3 font-medium cursor-pointer transition-colors opacity-50" title="Coming Soon">
+          {/* 👇 Updated Documents Link */}
+          <Link to="/admin/documents" className="px-4 py-3 text-gray-400 hover:text-white hover:bg-[#111] rounded-xl flex items-center gap-3 font-medium transition-colors">
             <FileText size={20} /> Documents
-          </div>
+          </Link>
         </nav>
 
         <div className="p-4 border-t border-[#222]">
@@ -149,6 +150,26 @@ const AdminDashboard = () => {
                 <h3 className="text-xl font-bold text-white relative z-10">Manage Users</h3>
                 <p className="text-gray-500 text-sm mt-2 relative z-10">
                   View, edit, or remove registered students from the database.
+                </p>
+              </motion.div>
+
+              {/* 👇 New Action Card for Documents */}
+              <motion.div 
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => navigate('/admin/documents')}
+                className="bg-[#0A0A0A] border border-[#222] p-6 rounded-2xl hover:border-[#F54A00]/50 transition-all cursor-pointer group relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#F54A00] rounded-full blur-[80px] opacity-[0.1] group-hover:opacity-[0.2] transition-opacity" />
+                <div className="flex justify-between items-center mb-4 relative z-10">
+                  <div className="p-3 rounded-xl bg-[#111] text-[#F54A00]">
+                    <FileText size={24} />
+                  </div>
+                  <ChevronRight className="text-gray-600 group-hover:text-[#F54A00] transition-colors" />
+                </div>
+                <h3 className="text-xl font-bold text-white relative z-10">Manage Documents</h3>
+                <p className="text-gray-500 text-sm mt-2 relative z-10">
+                  View, track, or delete generated PDF files from the database.
                 </p>
               </motion.div>
             </div>

@@ -12,7 +12,9 @@ import {
     getAllUsers ,
     updateUser,
     deleteUser,
-    getDashboardStats
+    getDashboardStats ,
+    getAllDocuments,
+    deleteDocument
 } from '../controllers/adminController.js';
 import adminAuth from '../middleware/adminAuth.js';
 
@@ -34,5 +36,7 @@ router.get('/users', adminAuth, getAllUsers);
 router.put('/users/:id', adminAuth, updateUser);
 router.delete('/users/:id', adminAuth, deleteUser);
 router.get('/dashboard-stats', adminAuth, getDashboardStats);
+router.get('/documents', adminAuth, getAllDocuments);
+router.delete('/documents/:id', adminAuth, deleteDocument);
 
 export default router;

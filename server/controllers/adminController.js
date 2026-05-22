@@ -5,6 +5,7 @@ import transporter from "../config/nodemailer.js";
 import User from "../models/userModel.js";
 import Document from "../models/documentModel.js";
 import FriendRequest from "../models/friendRequestModel.js";
+import SharedDoc from "../models/sharedDocModel.js";
 import { EMAIL_VERIFY_TEMPLATE, PASSWORD_RESET_TEMPLATE } from "../config/emailTemplate.js";
 
 
@@ -342,6 +343,46 @@ export const getDashboardStats = async (req, res) => {
                 todayDocs
             }
         });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+};
+
+export const getAllDocuments = async (req, res) => {
+    try {
+        // Fetch docs and populate the 'userId' field to get the generator's name
+        const docs = await Document.find()
+            .populate('userId', 'name email prn') 
+            .sort({ createdAt: -1 }); // Newest first
+
+        res.json({
+            success: true,
+            documents: docs
+        });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+};
+
+export const deleteDocument = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // 1. Delete from Document collection
+        const deletedDoc = await Document.findByIdAndDelete(id);
+
+        if (!deletedDoc) {
+            return res.json({ success: false, message: "Document not found" });
+        }
+
+        // 2. Also delete related entries from sharedDoc collection 
+        // (So users don't see broken links in their inbox)
+        await SharedDoc.deleteMany({ document: id });
+
+        // Note: Ideally, you should also delete the file from Cloudinary here 
+        // using deletedDoc.pdfUrl, but we can add that later if needed.
+
+        res.json({ success: true, message: "Document and related shares deleted permanently." });
     } catch (error) {
         res.json({ success: false, message: error.message });
     }
